@@ -19,39 +19,35 @@ export default function CustomDatePicker() {
       {/* Custom Input Style Picker */}
       <TouchableOpacity
         style={styles.inputContainer}
-        onPress={() => setVisible(true)}
         activeOpacity={0.8}
+        onPress={() => setVisible(true)}
       >
         <View style={styles.inputContent}>
-          <Text style={styles.text}>
-            {country?.flag && country?.name
-              ? `${country.flag}  ${country.name}`
-              : 'Choose your country'}
-          </Text>
+          <CountryPicker
+            withFlag
+            withFilter
+            withCountryNameButton
+            withAlphaFilter
+            withCallingCode
+            withEmoji
+            visible={visible}
+            onClose={() => setVisible(false)}
+            onSelect={(selectedCountry) => {
+              setCountryCode(selectedCountry.cca2);
+              setCountry({
+                name: selectedCountry.name,
+                flag: selectedCountry.flag,
+              });
+            }}
+            countryCode={countryCode}
+            theme={{ backgroundColor: '#fff' }}
+          />
           <AntDesign name="down" size={16} color="#888" />
         </View>
       </TouchableOpacity>
 
+
       {/* Country Picker Modal */}
-      <CountryPicker
-        withFlag
-        withFilter
-        withCountryNameButton={false}
-        withAlphaFilter
-        withCallingCode={false}
-        withEmoji
-        visible={visible}
-        onClose={() => setVisible(false)}
-        onSelect={(selectedCountry) => {
-          setCountryCode(selectedCountry.cca2);
-          setCountry({
-            name: selectedCountry.name,
-            flag: selectedCountry.flag,
-          });
-        }}
-        countryCode={countryCode}
-        theme={{ backgroundColor: '#fff' }}
-      />
     </View>
   );
 }
@@ -74,7 +70,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    height:30
+    height: 30
   },
   text: {
     fontSize: 16,
