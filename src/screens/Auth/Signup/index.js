@@ -222,22 +222,6 @@ const Signup = ({ navigation }) => {
     }
   };
 
-  // Handle signup completion
-  // const handleSignup = async () => {
-  //   const hasErrors = validateStep(step);
-  //   if (!hasErrors) {
-  //     try {
-  //       setLoading(true);
-  //       // Navigate to AllDone screen with proper navigation method
-  //       navigation.replace('AllDone');
-  //     } catch (error) {
-  //       console.error('Signup error:', error);
-  //       Alert.alert('Error', 'Something went wrong. Please try again.');
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   }
-  // };
 
 
   const handleSignup = () => {
@@ -556,23 +540,21 @@ const Signup = ({ navigation }) => {
             <AntDesign name="left" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.stepText}>Step {step} of 3</Text>
-        </View>
-
-        {/* Progress Bar */}
+        </View>      
         {renderProgressBar()}
-
-        {/* Step Content */}
         <View style={styles.stepContent}>
           {renderStep()}
         </View>
 
-        {/* Continue/Done Button */}
+      
         <View style={styles.buttonContainer}>
           <CustomButton
             title={step < 3 ? 'Continue' : 'Complete Registration'}
             onPress={step < 3 ? handleNext : handleSignup}
             loading={loading}
             disabled={loading}
+            customStyle={styles.button}
+
           />
         </View>
       </ScreenWrapper>
@@ -600,6 +582,9 @@ const styles = StyleSheet.create({
   },
     buttonContainer: {
       marginTop: 10,
+    },
+    button:{
+      marginBottom:20
     },
   progressContainer: {
     height: 6,
@@ -741,6 +726,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
   },
+
+  
 });
 
 export default Signup;

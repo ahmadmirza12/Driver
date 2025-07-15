@@ -63,7 +63,7 @@ const SocketProvider = ({children}) => {
     if (token) {
       initializeSocket();
     } else {
-      console.log('No token found for authentication');
+      // console.log('No token found for authentication');
     }
 
     // Clean up on unmount or app kill
