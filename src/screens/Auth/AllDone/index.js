@@ -1,4 +1,4 @@
-import { useNavigation } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { useEffect } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
@@ -6,10 +6,12 @@ export default function AllDone() {
   const navigation = useNavigation()
 
   useEffect(() => {
-    setTimeout(() => {
-      navigation.navigate('Login')
+    const timer = setTimeout(() => {
+      navigation.replace('Login');
     }, 3000);
-  })
+    
+    return () => clearTimeout(timer);
+  }, [navigation])
 
   return (
     <View style={styles.container}>

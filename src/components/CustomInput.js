@@ -40,6 +40,7 @@ const CustomInput = ({
   borderWidth,
   search,
   backgroundColor,
+  inputStyle,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [hidePass, setHidePass] = useState(true);
@@ -68,6 +69,7 @@ const CustomInput = ({
       <View
         style={[
           styles.mainContainer,
+          inputStyle,
           {
             marginBottom: error ? 5 : marginBottom || 15,
             marginTop,
@@ -79,7 +81,7 @@ const CustomInput = ({
                 : borderColor,
             borderWidth: borderWidth || 1,
             height: height ? height : multiline ? 180 : 56,
-            width: '100%',
+            width: width || '100%',
             borderRadius: borderRadius || 12,
             paddingLeft: 20,
             backgroundColor: backgroundColor || COLORS.inputBg,
@@ -103,6 +105,7 @@ const CustomInput = ({
               paddingVertical: multiline ? 18 : 0,
               paddingLeft: search ? 8 : 0,
             },
+            inputStyle,
           ]}
           secureTextEntry={secureTextEntry ? (hidePass ? true : false) : false}
           onFocus={handleFocus}

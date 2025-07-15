@@ -12,6 +12,7 @@ import OTPScreen from '../screens/Auth/OTPScreen';
 import Profile from '../screens/Auth/Profile';
 import Signup from '../screens/Auth/Signup';
 import SplashScreen from '../screens/Auth/SplashScreen';
+import Vehicle from '../screens/Auth/Vehicle';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,6 +31,8 @@ const AuthStack = () => {
       <Stack.Screen name="NewPass" component={NewPass} />
       <Stack.Screen name='AllDone' component={AllDone} />
       <Stack.Screen name="Profile" component={Profile} />
+      <Stack.Screen name="Vehicle" component={Vehicle} />
+
     </Stack.Navigator>
   );
 };

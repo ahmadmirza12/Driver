@@ -57,13 +57,6 @@
         }
       ],
       [
-        "react-native-maps",
-        {
-          "iosGoogleMapsApiKey": "AIzaSyCt1aq0GevUtpMApMtlnOt6AjeW8mamUCw",
-          "androidGoogleMapsApiKey": "AIzaSyCt1aq0GevUtpMApMtlnOt6AjeW8mamUCw"
-        }
-      ],
-      [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."

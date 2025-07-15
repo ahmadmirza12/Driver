@@ -14,9 +14,7 @@ export default function GetStarted() {
   return (
     <View style={styles.container}>
       <View style={styles.backIconWrapper}>
-        {/* <TouchableOpacity onPress={() => navigation.goBack()}>
-          <AntDesign name="left" size={20} color="black" />
-        </TouchableOpacity> */}
+      
       </View>
 
       <View>

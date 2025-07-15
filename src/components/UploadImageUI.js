@@ -1,5 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
+import { AntDesign } from '@expo/vector-icons';
 import {
   Image,
   StyleSheet,
@@ -8,8 +9,7 @@ import {
   View,
 } from "react-native";
 
-
-const UploadImageUI = ({ label, handleChange }) => {
+const UploadImageUI = ({ label, onImageSelected, compact = false }) => {
   const [selectedImage, setSelectedImage] = useState(null);
 
   const requestPermission = async () => {
@@ -37,12 +37,33 @@ const UploadImageUI = ({ label, handleChange }) => {
       if (!result.canceled) {
         const image = result.assets[0];
         setSelectedImage(image.uri);
-        handleChange && handleChange(image);
+        onImageSelected && onImageSelected(image);
       }
     } catch (error) {
       console.log("Image Picker Error:", error);
     }
   };
+
+  if (compact) {
+    return (
+      <TouchableOpacity
+        style={styles.compactContainer}
+        onPress={openImagePicker}
+        activeOpacity={0.8}
+      >
+        
+        <View style={styles.compactImageBox}>
+          {selectedImage ? (
+            <Image source={{ uri: selectedImage }} style={styles.compactPreviewImg} />
+          ) : (
+            <View style={styles.compactPlaceholder}>
+              <AntDesign name="plus" size={20} color="#6b7280" />
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity
@@ -55,13 +76,9 @@ const UploadImageUI = ({ label, handleChange }) => {
           <Image source={{ uri: selectedImage }} style={styles.previewImg} />
         ) : (
           <View style={styles.placeholderBox}>
-            <Image
-              source={require("../assets/images/UploadUI.png")}
-              style={styles.placeholderIcon}
-            />
-            <View style={{flexDirection:'row'}}>
-            <Text style={styles.placeholderText}>Click to upload Pic</Text>
-            <Text style={styles.UploadImageUIText}>or drag and drop</Text>
+            <View style={{ flexDirection: 'column', alignItems: 'center' }}>
+              <Text style={styles.placeholderText}>Upload</Text>
+              <Text style={styles.uploadImageUIText}> or drag and drop</Text>
             </View>
           </View>
         )}
@@ -79,60 +96,81 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   imageBox: {
-    height:97,
+    height: 100,
     borderRadius: 12,
-    backgroundColor:"#FFFFFF",
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#d1d5db",
     position: "relative",
-    width:336
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   previewImg: {
     width: "100%",
     height: "100%",
     resizeMode: "cover",
-    borderRadius:12
+    borderRadius: 10,
   },
   placeholderBox: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    borderStyle: "dashed",
-    borderColor: "#aaa",
   },
-  placeholderIcon: {
-    width: 30,
-    height: 30,
-    marginBottom: 8
-  },
+
   placeholderText: {
-    fontSize: 10,
-    color: "black",
-    fontWeight:"500"
+    fontSize: 12,
+    color: "#374151",
+    fontWeight: "500",
+    textAlign: "center",
   },
-  uploadBadge: {
-    position: "absolute",
-    bottom: 10,
-    right: 10,
-    backgroundColor: "#1F5546",
-    borderRadius: 20,
-    width: 40,
-    height: 97,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#fff",
-  },
-  iconImg: {
-    width: 20,
-    height: 20,
-    tintColor: "#fff",
+  uploadImageUIText: {
+    color: '#6b7280',
+    fontSize: 12,
+    fontWeight: '400',
+    textAlign: "center",
   },
   label: {
-    marginTop: 10,
-    fontSize: 14,
+    marginTop: 8,
+    fontSize: 12,
     fontWeight: "500",
-    color: "#333",
+    color: "#6b7280",
+    textAlign: "center",
   },
-  UploadImageUIText:{
-    color:'#667085',fontSize:10,fontWeight:'400',left:5
-  }
+  // Compact styles for inline uploads
+  compactContainer: {
+    width: 50,
+    height: 50,
+  },
+  compactImageBox: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  compactPreviewImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+    borderRadius: 8,
+  },
+  compactPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderStyle: 'dashed',
+    width: 20,
+    height: 20,
+    tintColor: "#9ca3af",
+  },
 });

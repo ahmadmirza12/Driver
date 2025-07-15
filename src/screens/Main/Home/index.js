@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+// import MapView, { Marker } from 'react-native-maps';
 
 export default function Home() {
   return (
@@ -37,7 +37,7 @@ export default function Home() {
       </View>
 
       {/* Map */}
-      <View style={styles.mapWrapper}>
+      {/* <View style={styles.mapWrapper}>
         <MapView
           style={StyleSheet.absoluteFillObject}
           initialRegion={{
@@ -50,7 +50,7 @@ export default function Home() {
           <Marker coordinate={{ latitude: 37.78825, longitude: -122.4324 }} />
         </MapView>
 
-        {/* Search Bar */}
+        
         <View style={styles.searchWrapper}>
           <TextInput
             placeholder="Search"
@@ -149,7 +149,7 @@ export default function Home() {
             </View>
           </ScrollView>
         </View>
-      </View>
+      {/* </View>  */}
     </View>
   );
 }

@@ -61,9 +61,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   container: {
-    borderWidth: 1,
-    borderColor: COLORS.gray,
-    backgroundColor: COLORS.white,
+    // borderWidth: 1,
+    // borderColor: COLORS.gray,
+    // backgroundColor: COLORS.white,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 12,
@@ -75,6 +75,12 @@ const styles = StyleSheet.create({
   cellBox: {
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.gray,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 26,
   },
   cellText: {
     fontSize: 20,
