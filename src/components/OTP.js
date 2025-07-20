@@ -9,7 +9,7 @@ import {
 import fonts from '../assets/fonts';
 import { COLORS } from '../utils/COLORS';
 
-const CELL_COUNT = 4;
+const CELL_COUNT = 6;
 
 const OTPComponent = ({ value, setValue }) => {
   const ref = useBlurOnFulfill({ value, cellCount: CELL_COUNT });
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     // backgroundColor: COLORS.white,
     borderRadius: 12,
     paddingVertical: 14,
-    paddingHorizontal: 12,
+    // paddingHorizontal: 12,
   },
   codeFieldRoot: {
     flexDirection: 'row',
@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.gray,
     backgroundColor: COLORS.white,
     borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 26,
+    paddingVertical: 9,
+    paddingHorizontal: 19,
   },
   cellText: {
     fontSize: 20,

@@ -8,23 +8,16 @@ import CustomInput from "../../../components/CustomInput";
 import fonts from "../../../assets/fonts";
 import { COLORS } from "../../../utils/COLORS";
 import { regEmail } from "../../../utils/constants";
+import { post } from "../../../services/ApiRequest";
+import { showSuccess, showError } from "../../../utils/toast";
 
 const ForgotPass = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
+  const [receivedOtp, setReceivedOtp] = useState("");
 
-  const sendOtp = async () => {
-    const response = {};
-    navigation.navigate("OTPScreen", {
-      isAccountCreated: true,
-      token: response?.data?.token || "",
-      verificationCode: response?.data?.verificationCode || "",
-      signupData: {
-        email,
-      },
-    });
-  };
+  
 
   const errorCheck = useMemo(() => {
     return () => {
@@ -35,6 +28,38 @@ const ForgotPass = ({ navigation }) => {
       setError(newErrors);
     };
   }, [email]);
+
+  const Sendotp = async () => {
+    try {
+      setLoading(true);
+      const payload = {
+        email: email,
+        purpose: "password-reset",
+      };
+
+      console.log("Send OTP Request Payload:", payload);
+      const response = await post("auth/send-verification-otp", payload);
+      console.log("Send OTP API Response:", response.data);
+
+      setReceivedOtp(response.data.data.otp);
+      showSuccess(`OTP sent to your email: ${response.data.data.otp}`);
+      navigation.navigate("OTPScreen", {
+        email,
+        receivedOtp,
+      });
+      return true;
+    } catch (error) {
+      console.error("Send OTP Error:", {
+        response: error.response?.data,
+      });
+      const errorMessage =
+        error.response?.data?.message || error.message || "Failed to send OTP";
+      showError(errorMessage);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     errorCheck();
@@ -72,7 +97,7 @@ const ForgotPass = ({ navigation }) => {
       <View style={styles.footer}>
         <CustomButton
           title="Send"
-          onPress={sendOtp}
+          onPress={Sendotp}
           loading={loading}
           disabled={!!error}
         />

@@ -17,7 +17,10 @@ import {
   import CustomButton from "../../../components/CustomButton";
   import { useNavigation } from "expo-router";
   
-  const Vehicle = () => {
+  const Vehicle = ({ route }) => {
+    const { userData } = route.params || {};
+    console.log("Received userData:", userData);
+
     const navigation = useNavigation();
     const vehicleOptions = [
       { label: "Select Vehicle", value: "" },
@@ -105,6 +108,81 @@ import {
         <Text style={styles.photoText}>{title}</Text>
       </TouchableOpacity>
     );
+
+
+
+
+    const submitSignup = async () => {
+      try {
+        if (
+          !documents.icFront ||
+          !documents.icBack ||
+          !documents.licenseFront ||
+          !documents.licenseBack
+        ) {
+          showError("Please upload all required documents");
+          return;
+        }
+  
+        const data = {
+          email: state.email.toLowerCase().trim(),
+          phone: state.phoneNumber.startsWith("")
+            ? state.phoneNumber
+            : `+${state.phoneNumber}`,
+          name: `${state.firstName} ${state.lastName}`.trim(),
+          password: state.password,
+          verificationToken: verificationToken,
+          driverType: "ASRA",
+          personalIdFrontUrl: documents.icFront,
+          personalIdBackUrl: documents.icBack,
+          driverLicenseFrontUrl: documents.licenseFront,
+          driverLicenseBackUrl: documents.licenseBack,
+          ...(documents.psvLicense && { psvLicenseFrontUrl: documents.psvLicense }),
+          ...(documents.jobPermit && { psvLicenseBackUrl: documents.jobPermit }),
+          operations: [state.selectedArea],
+          bankDetails: {
+            bankName: bankOptions.find((bank) => bank.value === state.selectedBank)?.label || "",
+            accountNumber: state.accountNumber,
+            accountHolderName: `${state.firstName} ${state.lastName}`.trim(),
+          },
+          isCarOwner: false,
+        };
+  
+        console.log("Signup Request Payload:", JSON.stringify(data, null, 2));
+  
+        setLoading(true);
+        const response = await post("auth/register/rider", data);
+        console.log("Signup API Response:", response.data);
+  
+        await AsyncStorage.removeItem("signupForm");
+        await AsyncStorage.removeItem("documents");
+  
+        showSuccess("Registration completed successfully!");
+        navigation.navigate("Vehicle", { userData: data });
+      } catch (error) {
+        console.error("Signup Error:", {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message,
+        });
+  
+        let errorMessage = "Failed to complete registration";
+  
+        if (error.response?.data?.errors) {
+          const errors = error.response.data.errors;
+          errorMessage = Object.values(errors)
+            .flat()
+            .map((err) => typeof err === "string" ? err : err.msg || "Validation error")
+            .join("\n");
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+  
+        showError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
   
     return (
       <ScrollView

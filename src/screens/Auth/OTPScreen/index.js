@@ -23,6 +23,8 @@ const OTPScreen = ({ route, navigation }) => {
   const isAccountCreated = route.params?.isAccountCreated;
   const signupData = route.params?.signupData;
   const token = route.params?.token;
+  const receivedOtp = route.params?.receivedOtp;
+  const email = route.params?.email;
 
   const keyboardHeight = new Animated.Value(0);
   const timerRef = useRef(null);
@@ -50,53 +52,56 @@ const OTPScreen = ({ route, navigation }) => {
     }, 1000);
   };
 
-  const handleVerifyOtp = async () => {
-    if (isAccountCreated) {
-      navigation.navigate('NewPass', { token, code: otp });
-    } else {
-      navigation.navigate('Profile');
-    }
-  };
+  // const handleVerifyOtp = async () => {
+  //   if (isAccountCreated) {
+  //     navigation.navigate('NewPass', { token, code: otp });
+  //   } else {
+  //     navigation.navigate('Profile');
+  //   }
+  // };
 
-  const handleResendOtp = async () => {
+
+
+
+
+  const Verifyotp = async () => {
     try {
-      const body = {
-        email: signupData?.email,
-        type: 'customer',
+      if (!otp || otp.length !== 6) {
+        showError("Please enter a valid 6-digit OTP");
+        return false;
+      }
+
+      setLoading(true);
+      const payload = {
+        email: email,
+        purpose: "registration",
+        otp,
       };
-      const url = isAccountCreated
-        ? 'users/forget-password'
-        : 'users/send-code';
-      const response = await post(url, body);
-      ToastMessage(response.data?.message);
+
+      console.log("Verify OTP Request Payload:", payload);
+      const response = await post("auth/verify-otp", payload);
+      console.log("Verify OTP API Response:", response.data);
+
+      setVerificationToken(response.data.data.verificationToken);
+      await AsyncStorage.setItem("verificationToken", response.data.data.verificationToken);
+      showSuccess(`OTP verified successfully! ${response.data.data.otp}`);
+       navigation.navigate('NewPass')
+      return true;
     } catch (error) {
-      ToastMessage(error.response?.data?.message);
+      console.error("Verify OTP Error:", {
+        response: error.response?.data,
+      });
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to verify OTP";
+      showError(errorMessage);
+      return false;
+    } finally {
+      setLoading(false);
     }
-    startTimer();
   };
 
-  useEffect(() => {
-    const keyboardWillShow = Keyboard.addListener('keyboardWillShow', event => {
-      Animated.timing(keyboardHeight, {
-        duration: event.duration,
-        toValue: event.endCoordinates.height,
-        useNativeDriver: false,
-      }).start();
-    });
-
-    const keyboardWillHide = Keyboard.addListener('keyboardWillHide', event => {
-      Animated.timing(keyboardHeight, {
-        duration: event.duration,
-        toValue: 0,
-        useNativeDriver: false,
-      }).start();
-    });
-
-    return () => {
-      keyboardWillShow.remove();
-      keyboardWillHide.remove();
-    };
-  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -118,7 +123,7 @@ const OTPScreen = ({ route, navigation }) => {
         headerUnScrollable={() => <Header title="Enter Authentication Code" marginTop={10}/>}
       >
         <CustomText
-          label="Enter 5-digit code we just texted to your phone number (404)-123-4567"
+          label={`Enter 5-digit code we just texted to your phone number ${receivedOtp}`}
           fontFamily={fonts.medium}
           marginBottom={30}
           marginTop={10}
@@ -144,7 +149,7 @@ const OTPScreen = ({ route, navigation }) => {
             fontFamily={fonts.bold}
             fontSize={16}
             disabled={timer !== 0}
-            onPress={handleResendOtp}
+            onPress={Verifyotp}
             color={timer === 0 ? '#1F5546' : '#999'}
           />
         </View>

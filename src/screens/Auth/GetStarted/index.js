@@ -42,7 +42,7 @@ export default function GetStarted() {
       const response = await get("auth/email-availability", {
         email: state.email,
       });
-      console.log("API Response:", response.data.data);
+      console.log("API Response:", response.data);
 
       navigation.navigate("Signup");
     } catch (error) {
@@ -79,7 +79,7 @@ export default function GetStarted() {
         />
       </View>
 
-      <CustomText label="Email Address" fontSize={16} marginBottom={8} />
+      <CustomText label="Email Address" fontSize={16} marginBottom={8} marginTop={11} />
       <CustomInput
         placeholder="Enter Your Email"
         value={state.email}

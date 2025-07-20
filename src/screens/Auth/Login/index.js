@@ -16,8 +16,12 @@ import ScreenWrapper from '../../../components/ScreenWrapper';
 import fonts from '../../../assets/fonts';
 import CustomInput from '../../../components/CustomInput';
 import { setLocation } from '../../../store/reducer/usersSlice';
+import { setToken } from '../../../store/reducer/AuthConfig';
+import { setUserData } from '../../../store/reducer/usersSlice';
 import GetLocation from '../../../utils/GetLocation';
 import { regEmail } from '../../../utils/constants';
+import { post } from '../../../services/ApiRequest';
+import { showSuccess } from '../../../utils/toast';
 
 const Login = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -67,6 +71,52 @@ const Login = ({ navigation }) => {
   useEffect(() => {
     dispatch(setLocation(locationData));
   }, [locationData]);
+
+
+  const login = async () => {
+    const data = {
+      email: state.email,
+      password: state.password,
+    };
+    try {
+      setLoading(true);
+      const response = await post("auth/login", data);
+      console.log("Login API Response:", response.data);
+      
+      // Store token in Redux
+      if (response.data.data?.token) {
+        dispatch(setToken(response.data.data.token));
+      }
+      
+      // Store user data in Redux if available
+      if (response.data.data?.user) {
+        dispatch(setUserData(response.data.data.user));
+      }
+      
+      setLoading(false);
+      showSuccess("Login successful");
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainStack' }],
+      });
+      
+    } catch (error) {
+      console.error("Login Error:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+      setLoading(false);
+      // Show error message to user
+      const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
+      showError(errorMessage);
+    }
+
+ }
+
+
+
+
 
   return (
     <ScreenWrapper
