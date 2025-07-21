@@ -54,7 +54,7 @@ const Signup = ({ navigation }) => {
 
   // City options for dropdown
   const cityOptions = [
-    
+    // { label: "Select City", value: "" },
     { label: "Kuala Lumpur", value: "kuala_lumpur" },
     { label: "Penang", value: "penang" },
     { label: "Johor Bahru", value: "johor_bahru" },
@@ -337,17 +337,15 @@ const Signup = ({ navigation }) => {
   // Handle signup submission
   const submitSignup = async () => {
     try {
-      if (
-        !documents.icFront ||
-        !documents.icBack ||
-        !documents.licenseFront ||
-        !documents.licenseBack
-      ) {
-        showError("Please upload all required documents");
+      // Validate form fields
+      const validationErrors = validateStep(3);
+      if (validationErrors) {
+        setErrors(validationErrors);
         return;
       }
 
-      const data = {
+      // Prepare the user data object
+      const userData = {
         email: state.email.toLowerCase().trim(),
         phone: state.phoneNumber.startsWith("")
           ? state.phoneNumber
@@ -364,7 +362,7 @@ const Signup = ({ navigation }) => {
           psvLicenseFrontUrl: documents.psvLicense,
         }),
         ...(documents.jobPermit && { psvLicenseBackUrl: documents.jobPermit }),
-        operations: [state.selectedCity], // Just use the stored city name
+        operations: [state.selectedCity],
         bankDetails: {
           bankName:
             bankOptions.find((bank) => bank.value === state.selectedBank)
@@ -375,39 +373,13 @@ const Signup = ({ navigation }) => {
         isCarOwner: false,
       };
 
-      console.log("Signup Request Payload:", JSON.stringify(data, null, 2));
+      console.log("Navigating to Vehicle with data:", userData);
 
-      setLoading(true);
-      const response = await post("auth/register/rider", data);
-      console.log("Signup API Response:", response.data);
-
-      await AsyncStorage.removeItem("signupForm");
-      await AsyncStorage.removeItem("documents");
-
-      showSuccess("Registration completed successfully!");
-      navigation.navigate("Login");
+      // Navigate to Vehicle screen with the user data
+      navigation.navigate("Vehicle", { userData });
     } catch (error) {
-      console.error("Signup Error:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message,
-      });
-
-      let errorMessage = "Failed to complete registration";
-
-      if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        errorMessage = Object.values(errors)
-          .flat()
-          .map((err) =>
-            typeof err === "string" ? err : err.msg || "Validation error"
-          )
-          .join("\n");
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
-
-      showError(errorMessage);
+      console.error("Error in signup:", error);
+      showError("An error occurred while processing your request. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -846,7 +818,7 @@ const Signup = ({ navigation }) => {
               defaultValue={state.selectedArea}
               onSelectItem={(value) => {
            
-                console.log("New area value:", value);
+                console.log("Selected area:", value);
                 
                 // Set the selected value in state
                 setState(prev => ({

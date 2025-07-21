@@ -29,7 +29,7 @@ const Account = ({ navigation }) => {
       await AsyncStorage.removeItem('token');
       navigation.reset({
         index: 0,
-        routes: [{ name: 'AuthStack', params: { screen: 'Login' } }],
+        routes: [{ name: 'AuthStack', params: { screen: 'GetStarted' } }],
       });
     } catch (error) {
       console.error('Error logging out:', error);

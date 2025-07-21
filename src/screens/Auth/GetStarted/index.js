@@ -41,8 +41,8 @@ export default function GetStarted() {
       });
       console.log("API Response:", response.data);
 
-      // navigation.navigate("Signup");
-      navigation.navigate("Login");
+      navigation.navigate("Signup");
+      // navigation.navigate("Login");
     } catch (error) {
       console.error(
         "Error checking email:",
