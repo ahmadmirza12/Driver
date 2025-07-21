@@ -94,7 +94,7 @@ const OnBoarding = () => {
             fontFamily={fonts.semiBold}
             textAlign="center"
             alignSelf="center"
-            marginBottom={15}
+            marginBottom={10}
             fontWeight={"bold"}
             marginTop={10}
           />
@@ -107,7 +107,7 @@ const OnBoarding = () => {
             }
             fontSize={20}
             color="#868686"
-            marginBottom={50}
+            marginBottom={30}
             textAlign="center"
             lineHeight={30}
             marginTop={5}

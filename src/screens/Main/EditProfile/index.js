@@ -1,5 +1,5 @@
-import { AntDesign } from '@expo/vector-icons';
-import { useState } from 'react';
+import { AntDesign } from "@expo/vector-icons";
+import { useState } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -7,33 +7,70 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
-} from 'react-native';
-import CustomButton from '../../../components/CustomButton';
-import CustomCountryPick from '../../../components/CustomCountryPick';
-import CustomInput from '../../../components/CustomInput';
-import CustomText from '../../../components/CustomText';
-import UploadImage from '../../../components/UploadImage';
+  View,
+} from "react-native";
+import CustomButton from "../../../components/CustomButton";
+import CustomCountryPick from "../../../components/CustomCountryPick";
+import CustomInput from "../../../components/CustomInput";
+import CustomText from "../../../components/CustomText";
+import UploadImage from "../../../components/UploadImage";
+import { useRoute } from "@react-navigation/native";
+import { post } from "../../../services/ApiRequest";
+import { showError, showSuccess } from "../../../utils/toast";
 
 const EditProfile = ({ navigation }) => {
-  const [state, setState] = useState({
-    firstName: '',
-    lastName: '',
-    age: '',
-    email: '',
-    password: '',
-    phoneNumber: '',
+  const route = useRoute();
+  const { profileData } = route.params || {};
+  // console.log("=====================================>", profileData);
+
+  // Initialize form state with profile data
+  const [states, setStates] = useState({
+    firstName: profileData?.data?.user?.name?.split(" ")[0] || "",
+    lastName: profileData?.data?.user?.name?.split(" ")[1] || "",
+    age: profileData?.data?.user?.age || "", 
+    email: profileData?.data?.user?.email || "",
+    password: "",
+    phoneNumber: profileData?.data?.user?.phone || "",
   });
 
-  // Placeholder for form errors — replace with validation as needed
+
   const errors = {
-    firstName: '',
-    lastName: '',
-    age: '',
-    email: '',
-    password: '',
-    phoneNumber: '',
+    firstName: "",
+    lastName: "",
+    age: "",
+    email: "",
+    password: "",
+    phoneNumber: "",
   };
+
+
+  const [loading,setLoading]=useState(false)
+
+  const updateProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await post("auth/update-profile", {
+        name: states.firstName + " " + states.lastName,
+        phone: states.phoneNumber,
+      });
+      console.log("Update Profile API Response:", response.data);
+      setLoading(false);
+      showSuccess("Profile updated successfully");
+      navigation.goBack();
+    } catch (error) {
+      console.error("Update Profile Error:", error);
+      setLoading(false);
+      showError("Failed to update profile. Please try again.");
+    }
+  };
+
+
+
+
+
+
+
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -49,15 +86,25 @@ const EditProfile = ({ navigation }) => {
       </View>
 
       {/* Scrollable Form Content */}
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <UploadImage />
 
-        <CustomText label="First Name" fontSize={15} marginTop={10} fontWeight="500" />
+        <CustomText
+          label="First Name"
+          fontSize={15}
+          marginTop={10}
+          fontWeight="500"
+        />
         <CustomInput
           placeholder="Name"
           marginTop={10}
-          value={state.firstName}
-          onChangeText={(text) => setState((prev) => ({ ...prev, firstName: text }))}
+          value={states.firstName} 
+          onChangeText={(text) =>
+            setStates((prev) => ({ ...prev, firstName: text }))
+          }
           error={errors.firstName}
         />
 
@@ -65,8 +112,10 @@ const EditProfile = ({ navigation }) => {
         <CustomInput
           placeholder="Surname"
           marginTop={10}
-          value={state.lastName}
-          onChangeText={(text) => setState((prev) => ({ ...prev, lastName: text }))}
+          value={states.lastName} 
+          onChangeText={(text) =>
+            setStates((prev) => ({ ...prev, lastName: text }))
+          }
           error={errors.lastName}
         />
 
@@ -75,8 +124,8 @@ const EditProfile = ({ navigation }) => {
           placeholder="Age"
           marginTop={10}
           keyboardType="numeric"
-          value={state.age}
-          onChangeText={(text) => setState((prev) => ({ ...prev, age: text }))}
+          value={states.age} 
+          onChangeText={(text) => setStates((prev) => ({ ...prev, age: text }))}
           error={errors.age}
         />
 
@@ -85,8 +134,10 @@ const EditProfile = ({ navigation }) => {
           placeholder="Password"
           marginTop={10}
           secureTextEntry
-          value={state.password}
-          onChangeText={(text) => setState((prev) => ({ ...prev, password: text }))}
+          value={states.password} 
+          onChangeText={(text) =>
+            setStates((prev) => ({ ...prev, password: text }))
+          }
           error={errors.password}
         />
 
@@ -95,8 +146,10 @@ const EditProfile = ({ navigation }) => {
           placeholder="Your Email Address"
           marginTop={10}
           keyboardType="email-address"
-          value={state.email}
-          onChangeText={(text) => setState((prev) => ({ ...prev, email: text }))}
+          value={states.email} 
+          onChangeText={(text) =>
+            setStates((prev) => ({ ...prev, email: text }))
+          }
           error={errors.email}
         />
 
@@ -105,18 +158,21 @@ const EditProfile = ({ navigation }) => {
           placeholder="Number"
           marginTop={10}
           keyboardType="phone-pad"
-          value={state.phoneNumber}
-          onChangeText={(text) => setState((prev) => ({ ...prev, phoneNumber: text }))}
+          value={states.phoneNumber} 
+          onChangeText={(text) =>
+            setStates((prev) => ({ ...prev, phoneNumber: text }))
+          }
           error={errors.phoneNumber}
         />
 
         <CustomCountryPick />
         <CustomButton
-        title='Update'
-        fontSize={16}
-        fontWeight='400'
-        marginTop={30}
-        backgroundColor='#1F5546'
+          title="Update"
+          fontSize={16}
+          fontWeight="400"
+          marginTop={30}
+          backgroundColor="#1F5546"
+          onPress={updateProfile}
         />
       </ScrollView>
     </SafeAreaView>
@@ -128,22 +184,22 @@ export default EditProfile;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E8F6F2',
+    backgroundColor: "#E8F6F2",
   },
   header: {
-    backgroundColor: '#1F5546',
+    backgroundColor: "#1F5546",
     height: 114,
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingTop: 50,
     paddingHorizontal: 20,
   },
   headerText: {
-    color: 'white',
+    color: "white",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   scrollContent: {
     padding: 20,

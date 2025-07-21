@@ -1,5 +1,5 @@
 import { AntDesign } from "@expo/vector-icons";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import CustomButton from "../../../components/CustomButton";
@@ -17,53 +17,99 @@ const ForgotPass = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [receivedOtp, setReceivedOtp] = useState("");
 
-  
+  const validateEmail = (email) => {
+    if (!email) {
+      setError("Please enter email address");
+      return false;
+    } else if (!regEmail.test(email)) {
+      setError("Please enter a valid email address");
+      return false;
+    }
+    setError("");
+    return true;
+  };
 
-  const errorCheck = useMemo(() => {
-    return () => {
-      let newErrors = "";
-      if (!email) newErrors = "Please enter email address";
-      else if (!regEmail.test(email))
-        newErrors = "Please enter a valid email address";
-      setError(newErrors);
-    };
-  }, [email]);
+  const handleEmailChange = (text) => {
+    setEmail(text);
+    // Clear error when user starts typing
+    if (error) {
+      setError("");
+    }
+  };
 
   const Sendotp = async () => {
+    // Validate email before proceeding
+    if (!validateEmail(email)) {
+      return;
+    }
+
     try {
       setLoading(true);
       const payload = {
-        email: email,
+        email: email.trim(),
         purpose: "password-reset",
       };
 
-      console.log("Send OTP Request Payload:", payload);
+      console.log("Send OTP Request Payload:", JSON.stringify(payload, null, 2));
+      
       const response = await post("auth/send-verification-otp", payload);
-      console.log("Send OTP API Response:", response.data);
+      
+      if (!response || !response.data) {
+        throw new Error("No response received from server");
+      }
 
-      setReceivedOtp(response.data.data.otp);
-      showSuccess(`OTP sent to your email: ${response.data.data.otp}`);
+      console.log("Send OTP API Response:", JSON.stringify(response.data, null, 2));
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Failed to send OTP");
+      }
+
+      if (!response.data.data?.otp) {
+        throw new Error("No OTP received from server");
+      }
+
+      const otp = response.data.data.otp;
+      setReceivedOtp(otp);
+      showSuccess(`OTP sent to your email`);
+      
       navigation.navigate("OTPScreen", {
-        email,
-        receivedOtp,
+        email: email.trim(),
+        receivedOtp: otp,
       });
+      
       return true;
     } catch (error) {
       console.error("Send OTP Error:", {
+        error: error.toString(),
         response: error.response?.data,
+        status: error.response?.status,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data,
+        }
       });
-      const errorMessage =
-        error.response?.data?.message || error.message || "Failed to send OTP";
+      
+      let errorMessage = "Failed to send OTP. Please try again.";
+      
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        errorMessage = error.response.data?.message || errorMessage;
+      } else if (error.request) {
+        // The request was made but no response was received
+        errorMessage = "No response from server. Please check your internet connection.";
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        errorMessage = error.message || errorMessage;
+      }
+      
       showError(errorMessage);
       return false;
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    errorCheck();
-  }, [errorCheck]);
 
   return (
     <View style={styles.wrapper}>
@@ -84,7 +130,7 @@ const ForgotPass = ({ navigation }) => {
 
         <Text style={styles.EmailText}>Email Address</Text>
         <CustomInput
-          onChangeText={setEmail}
+          onChangeText={handleEmailChange}
           value={email}
           error={error}
           placeholder="Your Email Address"
@@ -99,7 +145,7 @@ const ForgotPass = ({ navigation }) => {
           title="Send"
           onPress={Sendotp}
           loading={loading}
-          disabled={!!error}
+          disabled={!email.trim()} // Only disable if email is empty
         />
       </View>
     </View>

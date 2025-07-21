@@ -1,5 +1,5 @@
 import { AntDesign } from '@expo/vector-icons';
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '../../../components/CustomButton';
@@ -9,62 +9,75 @@ import ScreenWrapper from '../../../components/ScreenWrapper';
 import fonts from '../../../assets/fonts';
 import CustomText from '../../../components/CustomText';
 import { COLORS } from '../../../utils/COLORS';
-import { passwordRegex } from '../../../utils/constants';
+import { post } from '../../../services/ApiRequest';
+import { showError, showSuccess } from '../../../utils/toast';
 
 const NewPass = ({ navigation, route }) => {
-  const token = route?.params?.token;
-  const code = route?.params?.code;
+  const email = route?.params?.email;
+  const verificationToken = route?.params?.token;
+  // console.log("Email:", email);
+  // console.log("VerificationToken:", verificationToken);
 
   const [isModal, setModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const init = {
+  const [state, setState] = useState({
     password: '',
     confirmPassword: '',
-  };
+  });
 
-  const inits = {
+  const [errors, setErrors] = useState({
     passwordError: '',
     confirmPasswordError: '',
+  });
+
+  const validateInputs = () => {
+    let newErrors = {};
+    if (!state.password) newErrors.passwordError = 'Please enter password';
+    else if (state.password.length < 8)
+      newErrors.passwordError = 'Password must contain at least 8 characters';
+
+    if (!state.confirmPassword)
+      newErrors.confirmPasswordError = 'Please enter confirm password';
+    else if (state.confirmPassword.length < 8)
+      newErrors.confirmPasswordError = 'Password must contain at least 8 characters';
+    else if (state.password !== state.confirmPassword)
+      newErrors.confirmPasswordError = 'Passwords do not match';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const [state, setState] = useState(init);
-  const [errors, setErrors] = useState(inits);
-
-  const errorCheck = useMemo(() => {
-    return () => {
-      let newErrors = {};
-      if (!state.password) newErrors.passwordError = 'Please enter password';
-      else if (!passwordRegex.test(state.password))
-        newErrors.passwordError =
-          'Password must contain 8 characters and an underscore';
-
-      if (!state.confirmPassword)
-        newErrors.confirmPasswordError = 'Please enter confirm password';
-      else if (!passwordRegex.test(state.confirmPassword))
-        newErrors.confirmPasswordError =
-          'Password must contain 8 characters and an underscore';
-      else if (state.password !== state.confirmPassword)
-        newErrors.confirmPasswordError = 'Passwords do not match';
-
-      setErrors(newErrors);
-    };
-  }, [state]);
-
-  useEffect(() => {
-    errorCheck();
-  }, [errorCheck]);
-
   const handleSetNewPassword = async () => {
-    setLoading(true);
-    setTimeout(() => {
+    if (!validateInputs()) return;
+
+    try {
+      setLoading(true);
+      const payload = {
+        email,
+        verificationToken,
+        newPassword: state.password,
+      };
+      const response = await post("auth/reset-password", payload);
+      console.log("Reset Password API Response:", response.data);
+      showSuccess("Password reset successfully!");
+      navigation.navigate("Login");
+    } catch (error) {
+      console.error("Reset Password Error:", {
+        error: error.toString(),
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      const errorMessage =
+        error.response?.data?.message || error.message || "Failed to reset password";
+      showError(errorMessage);
+    } finally {
       setLoading(false);
       setModal(true);
       setTimeout(() => {
         setModal(false);
-        navigation.navigate('GetStarted');
       }, 1500);
-    }, 1000);
+    }
   };
 
   return (
@@ -155,7 +168,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.black,
     fontFamily: fonts.medium,
-    marginTop:40
+    marginTop: 40
   },
   headerText: {
     fontSize: 16,

@@ -21,7 +21,8 @@ import { setUserData } from '../../../store/reducer/usersSlice';
 import GetLocation from '../../../utils/GetLocation';
 import { regEmail } from '../../../utils/constants';
 import { post } from '../../../services/ApiRequest';
-import { showSuccess } from '../../../utils/toast';
+import { showSuccess, showError } from '../../../utils/toast';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Login = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -32,74 +33,79 @@ const Login = ({ navigation }) => {
     password: '',
   };
 
-  const inits = {
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({
     emailError: '',
     passwordError: '',
-  };
-
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState(inits);
+  });
   const [state, setState] = useState(init);
 
-  const handleLogin = async () => {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'MainStack' }],
-    });
-  };
-
-  const errorCheck = useMemo(() => {
-    return () => {
-      let newErrors = {};
-      if (!state.email) newErrors.emailError = 'Please enter Email address';
-      else if (!regEmail.test(state.email))
-        newErrors.emailError = 'Please enter valid email';
-
-      if (!state.password)
-        newErrors.passwordError = 'Please enter Password';
-      else if (state.password.length < 8)
-        newErrors.passwordError = 'Password must be 8 digits';
-
-      setErrors(newErrors);
+  const validateForm = () => {
+    let isValid = true;
+    const newErrors = {
+      emailError: '',
+      passwordError: '',
     };
-  }, [state]);
 
-  useEffect(() => {
-    errorCheck();
-  }, [errorCheck]);
+    // Email validation
+    if (!state.email) {
+      newErrors.emailError = 'Please enter Email address';
+      isValid = false;
+    } else if (!regEmail.test(state.email)) {
+      newErrors.emailError = 'Please enter a valid email';
+      isValid = false;
+    }
+
+    // Password validation
+    if (!state.password) {
+      newErrors.passwordError = 'Please enter Password';
+      isValid = false;
+    } else if (state.password.length < 8) {
+      newErrors.passwordError = 'Password must be at least 8 characters';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
 
   useEffect(() => {
     dispatch(setLocation(locationData));
   }, [locationData]);
 
-
   const login = async () => {
+    // Validate form before proceeding
+    if (!validateForm()) {
+      return;
+    }
+  
     const data = {
       email: state.email,
       password: state.password,
     };
+  
     try {
       setLoading(true);
       const response = await post("auth/login", data);
-      console.log("Login API Response:", response.data);
-      
-      // Store token in Redux
-      if (response.data.data?.token) {
+      console.log("Login API Response:", response.data.data.token);
+  
+      if (response.data.data.token) {
+        // Store token in AsyncStorage
+        await AsyncStorage.setItem("token", response.data.data.token);
+        console.log("Token stored in AsyncStorage");
+  
+        // Dispatch token to Redux store
         dispatch(setToken(response.data.data.token));
+  
+    
       }
-      
-      // Store user data in Redux if available
-      if (response.data.data?.user) {
-        dispatch(setUserData(response.data.data.user));
-      }
-      
+  
       setLoading(false);
       showSuccess("Login successful");
       navigation.reset({
         index: 0,
         routes: [{ name: 'MainStack' }],
       });
-      
     } catch (error) {
       console.error("Login Error:", {
         status: error.response?.status,
@@ -107,16 +113,25 @@ const Login = ({ navigation }) => {
         message: error.message,
       });
       setLoading(false);
-      // Show error message to user
       const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
       showError(errorMessage);
     }
+  };
 
- }
+  // Handle input changes and clear respective errors
+  const handleEmailChange = (text) => {
+    setState({ ...state, email: text });
+    if (errors.emailError) {
+      setErrors({ ...errors, emailError: '' });
+    }
+  };
 
-
-
-
+  const handlePasswordChange = (text) => {
+    setState({ ...state, password: text });
+    if (errors.passwordError) {
+      setErrors({ ...errors, passwordError: '' });
+    }
+  };
 
   return (
     <ScreenWrapper
@@ -149,7 +164,7 @@ const Login = ({ navigation }) => {
             <CustomInput
               placeholder="Enter Your Email"
               value={state.email}
-              onChangeText={(text) => setState({ ...state, email: text })}
+              onChangeText={handleEmailChange}
               error={errors.emailError}
               autoCapitalize="none"
               keyboardType="email-address"
@@ -163,7 +178,7 @@ const Login = ({ navigation }) => {
             <CustomInput
               placeholder="Password"
               value={state.password}
-              onChangeText={(text) => setState({ ...state, password: text })}
+              onChangeText={handlePasswordChange}
               error={errors.passwordError}
               secureTextEntry
             />
@@ -180,9 +195,8 @@ const Login = ({ navigation }) => {
 
             <CustomButton
               title="Login"
-              onPress={handleLogin}
+              onPress={login}
               loading={loading}
-              disabled={Object.keys(errors).some((key) => errors[key] !== '')}
               marginTop={30}
               marginBottom={30}
               backgroundColor="#1F5546"
@@ -191,7 +205,7 @@ const Login = ({ navigation }) => {
 
           <View style={styles.bottomText}>
             <DualText
-              title="Don’t have an account?"
+              title="Don't have an account?"
               secondTitle="Create New"
               onPress={() => navigation.navigate('Signup')}
             />

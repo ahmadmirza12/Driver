@@ -1,6 +1,6 @@
 import { AntDesign } from "@expo/vector-icons";
 import { useNavigation } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 import CustomText from "../../../components/CustomText";
 import CustomInput from "../../../components/CustomInput";
@@ -16,25 +16,22 @@ export default function GetStarted() {
     emailError: "",
   });
 
-  // Email validation on change
-  useEffect(() => {
-    const errorCheck = () => {
-      let newErrors = {};
-      if (!state.email) {
-        newErrors.emailError = "Please enter Email address";
-      } else if (!regEmail.test(state.email)) {
-        newErrors.emailError = "Please enter a valid email";
-      } else {
-        newErrors.emailError = ""; // Clear error if valid
-      }
-      setErrors(newErrors);
-    };
-    errorCheck();
-  }, [state.email]);
+  // Validate email function
+  const validateEmail = (email) => {
+    if (!email) {
+      return "Please enter Email address";
+    } else if (!regEmail.test(email)) {
+      return "Please enter a valid email";
+    }
+    return "";
+  };
 
   // Handle email availability check
   const handleCheckEmail = async () => {
-    if (errors.emailError || !state.email) {
+    const emailError = validateEmail(state.email);
+    
+    if (emailError) {
+      setErrors({ emailError });
       return;
     }
 
@@ -44,21 +41,28 @@ export default function GetStarted() {
       });
       console.log("API Response:", response.data);
 
-      navigation.navigate("Signup");
+      // navigation.navigate("Signup");
+      navigation.navigate("Login");
     } catch (error) {
       console.error(
         "Error checking email:",
         error.response?.data || error.message
       );
-      setErrors((prev) => ({
-        ...prev,
+      setErrors({
         emailError:
           error.response?.data?.message || "Error checking email availability",
-      }));
+      });
     }
   };
 
-  
+  // Update email state and clear error when typing
+  const handleEmailChange = (text) => {
+    setState({ ...state, email: text });
+    // Clear error when user starts typing
+    if (errors.emailError) {
+      setErrors({ emailError: "" });
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -83,7 +87,7 @@ export default function GetStarted() {
       <CustomInput
         placeholder="Enter Your Email"
         value={state.email}
-        onChangeText={(text) => setState({ ...state, email: text })}
+        onChangeText={handleEmailChange}
         error={errors.emailError}
         autoCapitalize="none"
         keyboardType="email-address"

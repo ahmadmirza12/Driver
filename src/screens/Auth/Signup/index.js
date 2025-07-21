@@ -54,7 +54,7 @@ const Signup = ({ navigation }) => {
 
   // City options for dropdown
   const cityOptions = [
-    { label: "Select City", value: "", disabled: true },
+    
     { label: "Kuala Lumpur", value: "kuala_lumpur" },
     { label: "Penang", value: "penang" },
     { label: "Johor Bahru", value: "johor_bahru" },
@@ -100,58 +100,60 @@ const Signup = ({ navigation }) => {
     { label: "Select Area", value: "" },
     { label: "City Transport", value: "City Transport" },
     { label: "Intercity", value: "Intercity" },
+    { label: "Klang", value: "Klang" },
+    { label: "Intercity", value: "Intercity" },
   ];
 
-  // Load form data from AsyncStorage on mount
-  useEffect(() => {
-    const loadFormData = async () => {
-      try {
-        const formData = await AsyncStorage.getItem("signupForm");
-        const docData = await AsyncStorage.getItem("documents");
-        if (formData) {
-          const parsedData = JSON.parse(formData);
-          if (!parsedData.selectedCity || parsedData.selectedCity === "") {
-            parsedData.selectedCity = "kuala_lumpur";
-          }
-          setState(parsedData);
-          console.log("Loaded form data:", parsedData);
-        }
-        if (docData) {
-          const parsedDocuments = JSON.parse(docData);
-          setDocuments(parsedDocuments);
-          console.log("Loaded documents:", parsedDocuments);
-        }
-      } catch (error) {
-        console.error("Failed to load form data:", error);
-        Alert.alert("Error", "Failed to load saved data. Please try again.");
-      }
-    };
-    loadFormData();
-  }, []);
+  // // Load form data from AsyncStorage on mount
+  // useEffect(() => {
+  //   const loadFormData = async () => {
+  //     try {
+  //       const formData = await AsyncStorage.getItem("signupForm");
+  //       const docData = await AsyncStorage.getItem("documents");
+  //       if (formData) {
+  //         const parsedData = JSON.parse(formData);
+  //         if (!parsedData.selectedCity || parsedData.selectedCity === "") {
+  //           parsedData.selectedCity = "kuala_lumpur";
+  //         }
+  //         setState(parsedData);
+  //         console.log("Loaded form data:", parsedData);
+  //       }
+  //       if (docData) {
+  //         const parsedDocuments = JSON.parse(docData);
+  //         setDocuments(parsedDocuments);
+  //         console.log("Loaded documents:", parsedDocuments);
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to load form data:", error);
+  //       Alert.alert("Error", "Failed to load saved data. Please try again.");
+  //     }
+  //   };
+  //   loadFormData();
+  // }, []);
 
-  // Save form data whenever state changes
-  useEffect(() => {
-    const saveFormData = async () => {
-      try {
-        await AsyncStorage.setItem("signupForm", JSON.stringify(state));
-        await AsyncStorage.setItem("documents", JSON.stringify(documents));
-        console.log("Form data saved successfully");
-      } catch (error) {
-        console.error("Failed to save form data:", error);
-      }
-    };
+  // // Save form data whenever state changes
+  // useEffect(() => {
+  //   const saveFormData = async () => {
+  //     try {
+  //       await AsyncStorage.setItem("signupForm", JSON.stringify(state));
+  //       await AsyncStorage.setItem("documents", JSON.stringify(documents));
+  //       console.log("Form data saved successfully");
+  //     } catch (error) {
+  //       console.error("Failed to save form data:", error);
+  //     }
+  //   };
 
-    if (state.firstName || state.email || state.phoneNumber) {
-      saveFormData();
-    }
-  }, [state, documents]);
+  //   if (state.firstName || state.email || state.phoneNumber) {
+  //     saveFormData();
+  //   }
+  // }, [state, documents]);
 
   const updateState = (field, value) => {
     console.log(`Updating ${field} with value:`, value);
     setState((prev) => {
       const newState = { ...prev, [field]: value };
-      console.log(`Updated state for ${field}:`, newState[field]);
-      console.log("Full updated state:", newState);
+      // console.log(`Updated state for ${field}:`, newState[field]);
+      // console.log("Full updated state:", newState);
       return newState;
     });
 
@@ -159,7 +161,7 @@ const Signup = ({ navigation }) => {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
-        console.log(`Cleared error for ${field}`);
+        // console.log(`Cleared error for ${field}`);
         return newErrors;
       });
     }
@@ -240,10 +242,10 @@ const Signup = ({ navigation }) => {
         hasErrors = true;
       }
 
-      if (!state.selectedArea) {
-        newErrors.selectedArea = "Area selection is required";
-        hasErrors = true;
-      }
+      // if (!state.selectedArea) {
+      //   newErrors.selectedArea = "Area selection is required";
+      //   hasErrors = true;
+      // }
 
       if (!documents.icFront || !documents.icBack) {
         newErrors.ic = "Both IC front and back are required";
@@ -311,7 +313,10 @@ const Signup = ({ navigation }) => {
       console.log("Verify OTP API Response:", response.data);
 
       setVerificationToken(response.data.data.verificationToken);
-      await AsyncStorage.setItem("verificationToken", response.data.data.verificationToken);
+      await AsyncStorage.setItem(
+        "verificationToken",
+        response.data.data.verificationToken
+      );
       showSuccess(`OTP verified successfully! ${response.data.data.otp}`);
       return true;
     } catch (error) {
@@ -355,11 +360,15 @@ const Signup = ({ navigation }) => {
         personalIdBackUrl: documents.icBack,
         driverLicenseFrontUrl: documents.licenseFront,
         driverLicenseBackUrl: documents.licenseBack,
-        ...(documents.psvLicense && { psvLicenseFrontUrl: documents.psvLicense }),
+        ...(documents.psvLicense && {
+          psvLicenseFrontUrl: documents.psvLicense,
+        }),
         ...(documents.jobPermit && { psvLicenseBackUrl: documents.jobPermit }),
-        operations: [state.selectedArea],
+        operations: [state.selectedCity], // Just use the stored city name
         bankDetails: {
-          bankName: bankOptions.find((bank) => bank.value === state.selectedBank)?.label || "",
+          bankName:
+            bankOptions.find((bank) => bank.value === state.selectedBank)
+              ?.label || "",
           accountNumber: state.accountNumber,
           accountHolderName: `${state.firstName} ${state.lastName}`.trim(),
         },
@@ -390,7 +399,9 @@ const Signup = ({ navigation }) => {
         const errors = error.response.data.errors;
         errorMessage = Object.values(errors)
           .flat()
-          .map((err) => typeof err === "string" ? err : err.msg || "Validation error")
+          .map((err) =>
+            typeof err === "string" ? err : err.msg || "Validation error"
+          )
           .join("\n");
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
@@ -613,41 +624,19 @@ const Signup = ({ navigation }) => {
         <View style={styles.dropdownContainer}>
           <Dropdown
             items={cityOptions}
-            selectedValue={state.selectedCity}
-            onValueChange={(value) => {
-              console.log("=== CITY DROPDOWN CHANGE ===");
-              console.log("Previous city value:", state.selectedCity);
-              console.log("New city value:", value);
-
-              const selectedCityObj = cityOptions.find(
-                (city) => city.value === value
-              );
-              console.log("Selected city object:", selectedCityObj);
-
-              setCityTouched(true);
-              updateState("selectedCity", value);
-
-              if (value && value !== "") {
-                console.log("Valid city selected, clearing error");
-                setErrors((prev) => {
-                  const newErrors = { ...prev };
-                  delete newErrors.selectedCity;
-                  console.log("Errors after clearing city error:", newErrors);
-                  return newErrors;
-                });
-              } else {
-                console.log("No city selected, setting error");
-                setErrors((prev) => ({
-                  ...prev,
-                  selectedCity: "Please select your city",
-                }));
-              }
-
-              console.log("=== END CITY DROPDOWN CHANGE ===");
+            defaultValue={state.selectedCity}
+            onSelectItem={(value) => {
+              console.log("Selected city:", value);
+              updateState("selectedCity", value.value);
             }}
-            error={errors.selectedCity}
             placeholder="Select your city"
-            containerStyle={errors.selectedCity ? styles.errorBorder : {}}
+            style={[styles.dropdown, errors.selectedCity && styles.errorBorder]}
+            dropDownContainerStyle={{
+              position: "absolute",
+              width: "100%",
+              zIndex: 1000,
+              elevation: 5,
+            }}
           />
           {errors.selectedCity && (
             <Text style={[styles.errorText, { fontWeight: "bold" }]}>
@@ -655,7 +644,6 @@ const Signup = ({ navigation }) => {
             </Text>
           )}
         </View>
-
       </ScrollView>
 
       <View style={styles.buttonContainer}>
@@ -810,27 +798,29 @@ const Signup = ({ navigation }) => {
           <View style={styles.dropdownContainer}>
             <Dropdown
               items={bankOptions}
-              selectedValue={state.selectedBank}
-              onValueChange={(value) => {
-                console.log("=== BANK DROPDOWN CHANGE ===");
-                console.log("Previous bank value:", state.selectedBank);
-                console.log("New bank value:", value);
-
-                const selectedBankObj = bankOptions.find(
-                  (bank) => bank.value === value
-                );
-                console.log("Selected bank object:", selectedBankObj);
-
-                updateState("selectedBank", value);
-                console.log("=== END BANK DROPDOWN CHANGE ===");
+              defaultValue={state.selectedBank}
+              onSelectItem={(value) => {
+                console.log("Selected bank:", value);
+                updateState("selectedBank", value.value);
               }}
-              error={errors.selectedBank}
               placeholder="Select Bank"
+              style={[
+                styles.dropdown,
+                errors.selectedBank && styles.errorBorder,
+              ]}
+              dropDownContainerStyle={{
+                position: "absolute",
+                width: "100%",
+                zIndex: 1000,
+                elevation: 5,
+              }}
             />
+            {errors.selectedBank && (
+              <Text style={[styles.errorText, { fontWeight: "bold" }]}>
+                {errors.selectedBank}
+              </Text>
+            )}
           </View>
-          {errors.selectedBank && (
-            <Text style={styles.errorText}>{errors.selectedBank}</Text>
-          )}
 
           <TextInput
             style={[
@@ -848,33 +838,41 @@ const Signup = ({ navigation }) => {
           )}
         </View>
 
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <Text style={styles.sectionTitle}>Area of Operation</Text>
           <View style={styles.dropdownContainer}>
             <Dropdown
               items={areaOptions}
-              selectedValue={state.selectedArea}
-              onValueChange={(value) => {
-                console.log("=== AREA DROPDOWN CHANGE ===");
-                console.log("Previous area value:", state.selectedArea);
+              defaultValue={state.selectedArea}
+              onSelectItem={(value) => {
+           
                 console.log("New area value:", value);
-
-                const selectedAreaObj = areaOptions.find(
-                  (area) => area.value === value
-                );
-                console.log("Selected area object:", selectedAreaObj);
-
-                updateState("selectedArea", value);
-                console.log("=== END AREA DROPDOWN CHANGE ===");
+                
+                // Set the selected value in state
+                setState(prev => ({
+                  ...prev,
+                  selectedArea: value
+                }));
+                
+                
+             
+                
+                
               }}
-              error={errors.selectedArea}
               placeholder="Select Area"
+              dropDownContainerStyle={{
+                position: 'absolute',
+                width: '100%',
+                zIndex: 1000,
+                elevation: 5,
+              }}
+              style={{
+                zIndex: 1000,
+                elevation: 5,
+              }}
             />
           </View>
-          {errors.selectedArea && (
-            <Text style={styles.errorText}>{errors.selectedArea}</Text>
-          )}
-        </View>
+        </View> */}
       </ScrollView>
 
       <View style={styles.buttonContainer}>

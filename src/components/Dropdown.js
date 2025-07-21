@@ -31,6 +31,13 @@ const Dropdown = ({
     }
   }
 
+  // Get the label of the selected item
+  const getSelectedLabel = () => {
+    if (!value) return null;
+    const selected = dropdownItems.find(item => item.value === value);
+    return selected ? selected.label : null;
+  }
+
   return (
     <View style={[styles.container, containerStyle]}>
       <DropDownPicker
@@ -62,6 +69,14 @@ const Dropdown = ({
         showTickIcon={true}
         arrowIconStyle={styles.arrowIcon}
         tickIconStyle={styles.tickIcon}
+        labelStyle={styles.labelStyle}
+        listItemLabelStyle={styles.listItemLabelStyle}
+        customItemLabelStyle={styles.customItemLabelStyle}
+        customItemContainerStyle={styles.customItemContainerStyle}
+        listMode="SCROLLVIEW"
+        scrollViewProps={{
+          nestedScrollEnabled: true,
+        }}
       />
     </View>
   )
@@ -87,7 +102,22 @@ const styles = StyleSheet.create({
     borderWidth: .7,
     borderRadius: 8,
     backgroundColor: '#ffffff',
- 
+    marginTop: 5,
+  },
+  labelStyle: {
+    fontSize: 16,
+    color: 'black',
+  },
+  listItemLabelStyle: {
+    color: 'black',
+  },
+  customItemLabelStyle: {
+    fontStyle: 'normal',
+    fontWeight: '400',
+  },
+  customItemContainerStyle: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
   text: {
     fontSize: 16,
