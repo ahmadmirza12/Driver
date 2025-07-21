@@ -90,15 +90,10 @@ const Vehicle = () => {
     )
   }
 
-  const validateForm = () => {
-    // First check if user is car owner
-    if (!isChecked) {
-      showError("Please confirm if you are the car owner")
-      return false
-    }
-
-    // Validate required fields
+  const validateCarOwnerForm = () => {
+    // Validate required fields for car owners
     const requiredFields = [
+      "vehicleType",
       "vehicleNumber",
       "vehicleModel",
       "vehicleRegistrationYear",
@@ -119,10 +114,10 @@ const Vehicle = () => {
     })
 
     // Validate vehicle type is not empty selection
-    // if (state.vehicleType === "") {
-    //   newErrors.vehicleType = "Please select a vehicle type"
-    //   hasErrors = true
-    // }
+    if (state.vehicleType === "") {
+      newErrors.vehicleType = "Please select a vehicle type"
+      hasErrors = true
+    }
 
     // Validate numeric fields
     if (state.vehicleRegistrationYear && isNaN(Number.parseInt(state.vehicleRegistrationYear))) {
@@ -168,14 +163,15 @@ const Vehicle = () => {
       return
     }
 
-    // Validate form before proceeding
-    if (!validateForm()) {
+    // If user is car owner, validate the form
+    if (isChecked && !validateCarOwnerForm()) {
       return
     }
 
     try {
       setUploading(true)
 
+      // Base data structure with userData from previous screen
       const data = {
         bankDetails: {
           accountHolderName: userData.bankDetails?.accountHolderName || "",
@@ -196,7 +192,11 @@ const Vehicle = () => {
         psvLicenseFrontUrl: userData.psvLicenseFrontUrl || "",
         verificationToken: userData.verificationToken || "",
         isCarOwner: isChecked,
-        vehicleSpecs: {
+      }
+
+      // Only add vehicle data if user is car owner
+      if (isChecked) {
+        data.vehicleSpecs = {
           name: `${state.vehicleNumber} ${state.vehicleModel}`,
           category: state.vehicleType || "car",
           model: state.vehicleModel,
@@ -207,20 +207,22 @@ const Vehicle = () => {
           color: state.vehicleColor,
           plateNumber: state.vehiclePlateNumber,
           mileage: state.vehicleMileage,
-        },
-        vehicleDocuments: {
+        }
+
+        data.vehicleDocuments = {
           grantCertificateUrl: documentImages.grant,
           insuranceUrl: documentImages.insurance,
           evpUrl: documentImages.evp,
-        },
-        vehiclePhotos: {
+        }
+
+        data.vehiclePhotos = {
           frontUrl: documentImages.front,
           backUrl: documentImages.back,
           leftUrl: documentImages.left,
           rightUrl: documentImages.right,
           interiorUrl: documentImages.interior,
           dashboardUrl: documentImages.dashboard,
-        },
+        }
       }
 
       console.log("Signup Request Payload:", JSON.stringify(data, null, 2))
@@ -385,15 +387,16 @@ const Vehicle = () => {
                 </View>
               </View>
             </View>
-
-            <CustomButton
-              title={uploading ? "Submitting..." : "Submit"}
-              onPress={submitSignup}
-              marginTop={20}
-              disabled={uploading}
-            />
           </>
         )}
+
+        {/* Submit button is always shown */}
+        <CustomButton
+          title={uploading ? "Submitting..." : "Submit"}
+          onPress={submitSignup}
+          marginTop={20}
+          disabled={uploading}
+        />
       </View>
     </ScrollView>
   )
