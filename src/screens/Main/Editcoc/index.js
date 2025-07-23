@@ -1,26 +1,22 @@
-"use client"
+"use client";
 
-import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native"
-import { useState } from "react"
-import { AntDesign } from "@expo/vector-icons"
-import { TouchableOpacity } from "react-native"
-import { useNavigation } from "expo-router"
-import UploadImageUI from "../../../components/UploadImageUI"
-import { put } from "../../../services/ApiRequest"
+import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { AntDesign } from "@expo/vector-icons";
+import { TouchableOpacity } from "react-native";
+import { useNavigation } from "expo-router";
+import UploadImageUI from "../../../components/UploadImageUI";
+import { put } from "../../../services/ApiRequest";
 
 const Editdoc = () => {
-
-
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
   const [documents, setDocuments] = useState({
     grant: null,
     insurance: null,
     evp: null,
-  })
+  });
 
-  const navigation = useNavigation()
-
-
+  const navigation = useNavigation();
 
   const handleDocumentUpload = (type) => (url) => {
     console.log(`${type} uploaded:`, url);
@@ -37,24 +33,24 @@ const Editdoc = () => {
         insuranceUrl: documents.insurance,
         evpUrl: documents.evp,
       },
-    }
+    };
 
     try {
-      setLoading(true)
-      const response = await put("rider/vehicle/documents", data)
-      console.log(response.data)
+      setLoading(true);
+      const response = await put("rider/vehicle/documents", data);
+      console.log(response.data);
       // Handle success - maybe show a success message or navigate back
-      navigation.goBack()
+      navigation.goBack();
     } catch (error) {
-      console.error("Error updating documents:", error)
+      console.error("Error updating documents:", error);
       // Handle error - show error message to user
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar backgroundColor="#1F5546" barStyle="light-content" />
 
       {/* Header */}
@@ -71,12 +67,12 @@ const Editdoc = () => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Vehicle Documents</Text>
             <View style={styles.photoRow}>
-            <UploadImageUI
+              <UploadImageUI
                 label="Grant Certificate"
                 onUploadComplete={handleDocumentUpload("grant")}
                 initialImage={documents.grant}
               />
-           <UploadImageUI
+              <UploadImageUI
                 label="Insurance"
                 onUploadComplete={handleDocumentUpload("insurance")}
                 initialImage={documents.insurance}
@@ -84,10 +80,10 @@ const Editdoc = () => {
             </View>
           </View>
           <UploadImageUI
-                label="EVP Certificate"
-                onUploadComplete={handleDocumentUpload("evp")}
-                initialImage={documents.evp}
-              />
+            label="EVP Certificate"
+            onUploadComplete={handleDocumentUpload("evp")}
+            initialImage={documents.evp}
+          />
         </View>
 
         {/* Save Button */}
@@ -96,14 +92,16 @@ const Editdoc = () => {
           onPress={updatedoc}
           disabled={loading}
         >
-          <Text style={styles.saveButtonText}>{loading ? "Saving..." : "Save Documents"}</Text>
+          <Text style={styles.saveButtonText}>
+            {loading ? "Saving..." : "Save Documents"}
+          </Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
-  )
-}
+    </View>
+  );
+};
 
-export default Editdoc
+export default Editdoc;
 
 const styles = StyleSheet.create({
   container: {
@@ -170,4 +168,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-})
+});

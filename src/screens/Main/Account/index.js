@@ -63,7 +63,8 @@ const Account = ({ navigation }) => {
     {
       icon: PNGIcons.Earning,
       title: "Earnings",
-      onPress: () => navigation.navigate("Earning"),
+      // onPress: () => navigation.navigate("Earning"),
+      onPress: () => navigation.navigate("Editphoto"),
     },
     {
       icon: PNGIcons.Payment,
@@ -84,6 +85,7 @@ const Account = ({ navigation }) => {
       icon: PNGIcons.Payment,
       title: "Privacy Policy",
       onPress: () => navigation.navigate("Privacy"),
+
     },
     {
       icon: PNGIcons.IconLogout,

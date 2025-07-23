@@ -1,245 +1,311 @@
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native'
-import React, { useState } from 'react'
-import { StatusBar } from 'react-native'
-import { TouchableOpacity } from 'react-native'
-import { AntDesign } from '@expo/vector-icons'
-import { useNavigation } from 'expo-router'
-import UploadImageUI from './UploadImageUI'
-import { put } from '../services/ApiRequest'
+import * as ImagePicker from "expo-image-picker";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { AntDesign } from "@expo/vector-icons";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+import * as Linking from "expo-linking";
 
+import { showSuccess, showError } from "../utils/toast";
+import { post } from "../services/ApiRequest";
 
-const Editphoto = () => {
-  const navigation = useNavigation()
-  const [documentImages, setDocumentImages] = useState({
-    front: null,
-    back: null,
-    left: null,
-    right: null,
-    interior: null,
-    dashboard: null,
-  });
-  const [loading, setLoading] = useState(false);
+const UploadImageUI = ({
+  label,
+  onImageSelected,
+  onUploadComplete,
+  initialImage = null,
+  compact = false,
+  pickerOptions = {},
+}) => {
+  const [selectedImage, setSelectedImage] = useState(initialImage);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState(null);
 
-  const handleDocumentUpload = (type) => (url) => {
-    console.log(`${type} uploaded:`, url);
-    setDocumentImages((prev) => ({
-      ...prev,
-      [type]: url,
-    }));
-  };
-
-  const handleImageSelected = (type) => (imageAsset) => {
-    console.log(`${type} image selected:`, imageAsset);
-    // Optional: Handle image selection if needed before upload
-  };
-
-  const updatedoc = async () => {
-    const data = {
-      vehiclePhotos: {
-        frontUrl: documentImages.front,
-        backUrl: documentImages.back,
-        leftUrl: documentImages.left,
-        rightUrl: documentImages.right,
-        interiorUrl: documentImages.interior,
-        dashboardUrl: documentImages.dashboard,
-      },
+  const requestPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Please allow access to your photos in settings",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Open Settings", onPress: () => Linking.openSettings() },
+        ]
+      );
+      return false;
     }
+    return true;
+  };
+
+  const pickImage = async () => {
+    if (isUploading) return;
+    const permission = await requestPermission();
+    if (!permission) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: pickerOptions.allowsEditing ?? true,
+      quality: pickerOptions.quality || 0.8,
+      allowsMultipleSelection: false,
+      aspect: pickerOptions.aspect || [4, 3],
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const imageUri = result.assets[0].uri;
+      setSelectedImage(imageUri);
+      onImageSelected?.(result.assets[0]);
+      try {
+        await uploadImage(imageUri);
+      } catch (error) {
+        // Error handled in uploadImage
+      }
+    }
+  };
+
+  const uploadImage = async (imageUri) => {
+    if (!imageUri) {
+      showError("No image selected");
+      return null;
+    }
+
+    setIsUploading(true);
 
     try {
-      setLoading(true)
-      const response = await put("rider/vehicle/photos", data)
-      console.log(response.data)
-      // Handle success - maybe show a success message or navigate back
-      navigation.goBack()
+      const formData = new FormData();
+      const filename = imageUri.split("/").pop();
+      const match = /(\.\w+)$/.exec(filename);
+      const ext = match ? match[1] : ".jpg";
+
+      // Match the working Postman example format
+      formData.append("file", {
+        uri: imageUri,
+        name: `upload_${Date.now()}${ext}`,
+        type: `image/${ext === ".jpg" ? "jpeg" : ext.replace(".", "")}`,
+      });
+
+      // Use the same endpoint as the working Postman example
+      const response = await axios({
+        method: "post",
+        url: "https://riderbackend-gbe0.onrender.com/api/files/upload",
+        data: formData,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "multipart/form-data",
+        },
+        maxBodyLength: Infinity,
+      });
+
+      console.log("Upload response:", response.data); // Log full response
+
+      if (response.data) {
+        // Try different response structures
+        const url =
+          response.data.url || response.data.data?.url || response.data[0]?.url;
+
+        if (!url) {
+          console.error("No URL found in response:", response.data);
+          throw new Error("Upload successful but no URL returned");
+        }
+
+        setUploadedImageUrl(url);
+        showSuccess("Image uploaded successfully");
+        onUploadComplete?.(url);
+        return url;
+      } else {
+        throw new Error("Invalid response from server");
+      }
     } catch (error) {
-      console.error("Error updating documents:", error)
-      // Handle error - show error message to user
+      console.error("Upload error:", error);
+      let errorMessage = "Failed to upload image. Please try again.";
+
+      if (error.response) {
+        errorMessage =
+          error.response.data?.message ||
+          `Upload failed with status ${error.response.status}`;
+      } else if (error.request) {
+        errorMessage = "No response from server. Please check your connection.";
+      } else if (error.code === "ECONNABORTED") {
+        errorMessage = "Upload timed out. Please try again.";
+      } else {
+        errorMessage = error.message || errorMessage;
+      }
+
+      showError(errorMessage);
+      Alert.alert("Upload Failed", errorMessage);
+
+      throw error;
     } finally {
-      setLoading(false)
+      setIsUploading(false);
     }
+  };
+
+  useEffect(() => {
+    if (initialImage) {
+      setSelectedImage(initialImage);
+      setUploadedImageUrl(initialImage);
+    }
+  }, [initialImage]);
+
+  if (compact) {
+    return (
+      <View style={styles.compactWrapper}>
+        {label && <Text style={styles.label}>{label}</Text>}
+        <TouchableOpacity
+          style={styles.compactContainer}
+          onPress={pickImage}
+          activeOpacity={0.8}
+          disabled={isUploading}
+        >
+          <View style={styles.compactImageBox}>
+            {isUploading ? (
+              <ActivityIndicator size="small" color="#0000ff" />
+            ) : selectedImage ? (
+              <View style={styles.imageContainer}>
+                <Image
+                  source={{ uri: selectedImage }}
+                  style={styles.compactPreviewImg}
+                  resizeMode="cover"
+                />
+              </View>
+            ) : (
+              <View style={styles.compactPlaceholder}>
+                <AntDesign name="plus" size={20} color="#6b7280" />
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#1F5546" barStyle="light-content" />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <AntDesign name="left" size={20} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerText}>Vehicle Photos</Text>
-        <View style={{ width: 20 }} />
-      </View>
-
-      <ScrollView style={styles.content}>
-        <View style={styles.card}>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Vehicle Photos</Text>
-           
-            <View style={styles.uploadSection}>
-              <Text style={styles.uploadLabel}>Front View</Text>
-              <UploadImageUI
-              label="Front View"
-              onImageSelected={handleImageSelected("front")}
-              onUploadComplete={handleDocumentUpload("front")}
-              initialImage={documentImages.front}
-              pickerOptions={{
-                allowsEditing: true,
-                quality: 0.8,
-                aspect: [4, 3]
-              }}
-            />
-            
-            <UploadImageUI
-              label="Back View"
-              onImageSelected={handleImageSelected("back")}
-              onUploadComplete={handleDocumentUpload("back")}
-              initialImage={documentImages.back}
-              pickerOptions={{
-                allowsEditing: true,
-                quality: 0.8,
-                aspect: [4, 3]
-              }}
-            />
-          
-            <UploadImageUI
-              label="Left Side"
-              onImageSelected={handleImageSelected("left")}
-              onUploadComplete={handleDocumentUpload("left")}
-              initialImage={documentImages.left}
-              pickerOptions={{
-                allowsEditing: true,
-                quality: 0.8,
-                aspect: [4, 3]
-              }}
-            />
-            
-            <UploadImageUI
-              label="Right Side"
-              onImageSelected={handleImageSelected("right")}
-              onUploadComplete={handleDocumentUpload("right")}
-              initialImage={documentImages.right}
-              pickerOptions={{
-                allowsEditing: true,
-                quality: 0.8,
-                aspect: [4, 3]
-              }}
-            />
-            
-            <UploadImageUI
-              label="Interior"
-              onImageSelected={handleImageSelected("interior")}
-              onUploadComplete={handleDocumentUpload("interior")}
-              initialImage={documentImages.interior}
-              pickerOptions={{
-                allowsEditing: true,
-                quality: 0.8,
-                aspect: [4, 3]
-              }}
-            />
-            
-            <UploadImageUI
-              label="Dashboard"
-              onImageSelected={handleImageSelected("dashboard")}
-              onUploadComplete={handleDocumentUpload("dashboard")}
-              initialImage={documentImages.dashboard}
-              pickerOptions={{
-                allowsEditing: true,
-                quality: 0.8,
-                aspect: [4, 3]
-              }}
+    <TouchableOpacity
+      style={styles.container}
+      onPress={pickImage}
+      activeOpacity={0.8}
+      disabled={isUploading}
+    >
+      <View style={styles.imageBox}>
+        {isUploading ? (
+          <ActivityIndicator size="large" color="#0000ff" />
+        ) : selectedImage ? (
+          <View style={styles.imageContainer}>
+            <Image
+              source={{ uri: selectedImage }}
+              style={styles.previewImg}
+              resizeMode="cover"
             />
           </View>
-
-          {/* Save Button */}
-          <TouchableOpacity
-            style={[styles.saveButton, loading && styles.saveButtonDisabled]}
-            onPress={updatedoc}
-            disabled={loading}
-          >
-            <Text style={styles.saveButtonText}>
-              {loading ? "Saving..." : "Save Photos"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        ) : (
+          <View style={styles.placeholderBox}>
+            <Text style={styles.placeholderText}>Upload Image</Text>
+          </View>
+        )}
       </View>
-      </ScrollView>
-
-    </SafeAreaView>
-  )
-}
-
-export default Editphoto
+      {label && <Text style={styles.regularLabel}>{label}</Text>}
+    </TouchableOpacity>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: "#E8F6F2",
-  },
-  header: {
-    backgroundColor: "#1F5546",
-    height: 114,
+    alignItems: "center",
     width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingTop: 50,
-    paddingHorizontal: 20,
   },
-  headerText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "600",
+  compactWrapper: {
+    marginBottom: 16,
   },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  card: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 20,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1F5546",
-    marginBottom: 15,
-  },
-  uploadSection: {
-    marginBottom: 20,
-  },
-  uploadLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1F5546",
+  label: {
+    fontSize: 14,
     marginBottom: 8,
+    color: "#4B5563",
+    fontFamily: "Inter-Medium",
   },
-  saveButton: {
-    backgroundColor: "#1F5546",
-    borderRadius: 8,
-    paddingVertical: 15,
+  regularLabel: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#6b7280",
+    textAlign: "center",
+  },
+  imageBox: {
+    height: 100,
+    borderRadius: 12,
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#d1d5db",
+    width: "100%",
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: 10,
   },
-  saveButtonDisabled: {
-    opacity: 0.6,
+  imageContainer: {
+    width: "100%",
+    height: "100%",
+    position: "relative",
   },
-  saveButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
+  previewImg: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+    borderRadius: 10,
   },
-})
+  placeholderBox: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  placeholderText: {
+    fontSize: 12,
+    color: "#374151",
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  compactContainer: {
+    width: 150,
+    height: 70,
+  },
+  compactImageBox: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  compactPreviewImg: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+    borderRadius: 8,
+  },
+  compactPlaceholder: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderStyle: "dashed",
+  },
+  successOverlay: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    borderRadius: 20,
+    padding: 5,
+  },
+});
+
+export default UploadImageUI;

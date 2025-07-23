@@ -1,14 +1,13 @@
 import { StatusBar, StyleSheet, Text, View, TouchableOpacity, ScrollView } from "react-native";
 import React from "react";
-import { useNavigation } from "expo-router";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { AntDesign, MaterialIcons, Ionicons, FontAwesome5 } from "@expo/vector-icons";
-import { useRoute } from "@react-navigation/native";
 
 const Editowner = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { profileData } = route.params || {};
-  console.log("profileData=====2", profileData);
+  console.log("profileData in Editowner:", profileData);
 
   const menuItems = [
     {
@@ -19,7 +18,7 @@ const Editowner = () => {
       iconType: "Ionicons",
       color: "#4A90E2",
       route: "EditProfile",
-      params: { profileData: profileData }
+      params: { profileData },
     },
     {
       id: 2,
@@ -28,7 +27,7 @@ const Editowner = () => {
       icon: "car-sport-outline",
       iconType: "Ionicons",
       color: "#F5A623",
-      route: "Editspec"
+      route: "Editspec",
     },
     {
       id: 3,
@@ -37,7 +36,7 @@ const Editowner = () => {
       icon: "document-text-outline",
       iconType: "Ionicons",
       color: "#7ED321",
-      route: "Editdoc"
+      route: "Editdoc",
     },
     {
       id: 4,
@@ -46,8 +45,8 @@ const Editowner = () => {
       icon: "camera-outline",
       iconType: "Ionicons",
       color: "#D0021B",
-      route: "Editphoto"
-    }
+      route: "Editphoto",
+    },
   ];
 
   const renderIcon = (iconName, iconType, color, size = 24) => {
@@ -64,30 +63,25 @@ const Editowner = () => {
   };
 
   const handleNavigation = (route, params = {}) => {
-    navigation.navigate(route, params);
+    try {
+      navigation.navigate(route, params);
+    } catch (error) {
+      console.error("Navigation error:", error.message);
+      alert("Failed to navigate. Please try again.");
+    }
   };
 
   return (
     <View style={styles.container}>
-      <StatusBar
-        backgroundColor="transparent"
-        barStyle="light-content"
-        translucent={true}
-      />
-      
-      {/* Header */}
+      <StatusBar backgroundColor="transparent" barStyle="light-content" translucent={true} />
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <AntDesign name="left" size={20} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Owner</Text>
         <View style={styles.placeholder} />
       </View>
 
-      {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeText}>Manage Your Information</Text>
@@ -98,13 +92,7 @@ const Editowner = () => {
           {menuItems.map((item, index) => (
             <TouchableOpacity
               key={item.id}
-              style={[
-                styles.menuItem,
-                { 
-                  marginTop: index === 0 ? 0 : 15,
-                  transform: [{ scale: 1 }] 
-                }
-              ]}
+              style={[styles.menuItem, { marginTop: index === 0 ? 0 : 15 }]}
               onPress={() => handleNavigation(item.route, item.params)}
               activeOpacity={0.7}
             >
@@ -112,19 +100,15 @@ const Editowner = () => {
                 <View style={[styles.iconContainer, { backgroundColor: `${item.color}15` }]}>
                   {renderIcon(item.icon, item.iconType, item.color, 26)}
                 </View>
-                
                 <View style={styles.textContainer}>
                   <Text style={styles.menuTitle}>{item.title}</Text>
                   <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
                 </View>
-                
                 <AntDesign name="right" size={16} color="#C7C7CC" />
               </View>
             </TouchableOpacity>
           ))}
         </View>
-
-        {/* Bottom spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </View>
@@ -149,10 +133,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     elevation: 4,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
   },
@@ -198,10 +179,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     elevation: 2,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 2.22,
     borderWidth: 1,

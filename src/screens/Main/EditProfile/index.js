@@ -6,16 +6,16 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import CustomButton from "../../../components/CustomButton";
-import CustomCountryPick from "../../../components/CustomCountryPick";
 import CustomInput from "../../../components/CustomInput";
 import CustomText from "../../../components/CustomText";
-import UploadImage from "../../../components/UploadImage";
+import UploadImageUI from "../../../components/UploadImageUI";
 import { useRoute } from "@react-navigation/native";
-import { post, put } from "../../../services/ApiRequest";
+import { put } from "../../../services/ApiRequest";
 import { showError, showSuccess } from "../../../utils/toast";
 import Dropdown from "../../../components/Dropdown";
 
@@ -32,30 +32,74 @@ const EditProfile = ({ navigation }) => {
     password: "",
     phoneNumber: profileData?.data?.user?.phone || "",
     selectedCity: [], // Initialize as empty array for multiple selection
+    selectedBank: "",
+    accountNumber: "",
+  });
+
+  const [documents, setDocuments] = useState({
+    icFront: null,
+    icBack: null,
+    licenseFront: null,
+    licenseBack: null,
+    psvLicense: null,
+    jobPermit: null,
   });
 
   const [loading, setLoading] = useState(false);
 
-  const updateoperations = async () => {
-    const data = {
-      operations: Array.isArray(states.selectedCity) 
-        ? states.selectedCity.map(city => city.value || city) 
-        : [states.selectedCity?.value || states.selectedCity || '']
-    };
-    
-    console.log('Sending data:', data);
-    
+  // Handle document uploads
+  const handleDocumentUpload = (type) => (url) => {
+    console.log(`${type} uploaded:`, url);
+    setDocuments((prev) => ({
+      ...prev,
+      [type]: url,
+    }));
+  };
+
+  // Consolidated update function to call all APIs
+  const handleUpdate = async () => {
+    setLoading(true);
+
     try {
-      setLoading(true);
-      const response = await put("rider/operations", data);
-      console.log("Update Operations API Response:", response.data);
+      // Update operations
+      const operationsData = {
+        operations: states.selectedCity.map((city) => city.value || city),
+      };
+      await put("rider/operations", operationsData);
+      console.log("Operations updated successfully");
+
+      // Update bank details
+      const bankDetails = {
+        bankName:
+          bankOptions.find((bank) => bank.value === states.selectedBank)
+            ?.label || "",
+        accountNumber: states.accountNumber,
+        accountHolderName: `${states.firstName} ${states.lastName}`.trim(),
+      };
+      await put("rider/bank-details", bankDetails);
+      console.log("Bank details updated successfully");
+
+      // Update documents
+      const documentDetails = {
+        personalIdFrontUrl: documents.icFront,
+        personalIdBackUrl: documents.icBack,
+        driverLicenseFrontUrl: documents.licenseFront,
+        driverLicenseBackUrl: documents.licenseBack,
+        ...(documents.psvLicense && {
+          psvLicenseFrontUrl: documents.psvLicense,
+        }),
+        ...(documents.jobPermit && { psvLicenseBackUrl: documents.jobPermit }),
+      };
+      await put("rider/documents", documentDetails);
+      console.log("Documents updated successfully");
+
       setLoading(false);
-      showSuccess("Operations updated successfully");
+      showSuccess("Profile updated successfully");
       navigation.goBack();
     } catch (error) {
-      console.error("Update Operations Error:", error);
+      console.error("Update Error:", error);
       setLoading(false);
-      showError("Failed to update Operations. Please try again.");
+      showError("Failed to update profile. Please try again.");
     }
   };
 
@@ -66,10 +110,19 @@ const EditProfile = ({ navigation }) => {
     { label: "Ipoh", value: "ipoh" },
   ];
 
+  const bankOptions = [
+    { label: "Select Bank", value: "" },
+    { label: "Maybank", value: "maybank" },
+    { label: "CIMB Bank", value: "cimb" },
+    { label: "Public Bank", value: "public_bank" },
+    { label: "RHB Bank", value: "rhb" },
+    { label: "Hong Leong Bank", value: "hong_leong" },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#1F5546" barStyle="light-content" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -84,8 +137,6 @@ const EditProfile = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <UploadImage />
-
         <CustomText
           label="First Name"
           fontSize={15}
@@ -93,7 +144,7 @@ const EditProfile = ({ navigation }) => {
           fontWeight="500"
         />
         <CustomInput
-          placeholder="Name"
+          placeholder="First Name"
           marginTop={10}
           value={states.firstName}
           onChangeText={(text) =>
@@ -142,7 +193,7 @@ const EditProfile = ({ navigation }) => {
 
         <CustomText label="Phone Number" fontSize={15} fontWeight="500" />
         <CustomInput
-          placeholder="Number"
+          placeholder="Phone Number"
           marginTop={10}
           keyboardType="phone-pad"
           value={states.phoneNumber}
@@ -151,7 +202,106 @@ const EditProfile = ({ navigation }) => {
           }
         />
 
-        <CustomCountryPick />
+        {/* Bank Details */}
+        <View >
+          <Text style={styles.sectionTitle}>Bank Details</Text>
+          <View style={styles.dropdownContainer}>
+            <Dropdown
+              items={bankOptions}
+              defaultValue={states.selectedBank}
+              onSelectItem={(selectedItem) => {
+                const value =
+                  typeof selectedItem === "object" && selectedItem.value
+                    ? selectedItem.value
+                    : selectedItem;
+                setStates((prev) => ({ ...prev, selectedBank: value }));
+              }}
+              placeholder="Select Bank"
+              style={styles.dropdown}
+              dropDownContainerStyle={styles.dropdownList}
+            />
+          </View>
+
+          <TextInput
+            style={styles.textInput}
+            placeholder="Account Number"
+            value={states.accountNumber}
+            onChangeText={(text) =>
+              setStates((prev) => ({ ...prev, accountNumber: text }))
+            }
+            keyboardType="numeric"
+            placeholderTextColor="#9CA3AF"
+          />
+        </View>
+
+        {/* Documents */}
+        <Text style={styles.documentsTitle}>Upload Documents</Text>
+
+        <View style={styles.documentSection}>
+          <Text style={styles.documentTitle}>ID (Front & Back)</Text>
+          <View style={styles.uploadGrid}>
+            <View style={styles.uploadItem}>
+              <Text style={styles.uploadLabel}>Front</Text>
+              <UploadImageUI
+                label="ID Front (Required)"
+                onUploadComplete={handleDocumentUpload("icFront")}
+                initialImage={documents.icFront}
+              />
+            </View>
+            <View style={styles.uploadItem}>
+              <Text style={styles.uploadLabel}>Back</Text>
+              <UploadImageUI
+                label="ID Back (Required)"
+                onUploadComplete={handleDocumentUpload("icBack")}
+                initialImage={documents.icBack}
+              />
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.documentSection}>
+          <Text style={styles.documentTitle}>
+            Driving License (Front & Back)
+          </Text>
+          <View style={styles.uploadGrid}>
+            <View style={styles.uploadItem}>
+              <Text style={styles.uploadLabel}>Front</Text>
+              <UploadImageUI
+                label="License Front (Required)"
+                onUploadComplete={handleDocumentUpload("licenseFront")}
+                initialImage={documents.licenseFront}
+              />
+            </View>
+            <View style={styles.uploadItem}>
+              <Text style={styles.uploadLabel}>Back</Text>
+              <UploadImageUI
+                label="License Back (Required)"
+                onUploadComplete={handleDocumentUpload("licenseBack")}
+                initialImage={documents.licenseBack}
+              />
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.documentButton}>
+            <UploadImageUI
+              onUploadComplete={handleDocumentUpload("psvLicense")}
+              label="PSV License Front"
+              compact={true}
+              initialImage={documents.psvLicense}
+            />
+          </View>
+
+          <View style={styles.documentButton}>
+            <UploadImageUI
+              onUploadComplete={handleDocumentUpload("jobPermit")}
+              label="PSV License Back"
+              compact={true}
+              initialImage={documents.jobPermit}
+            />
+          </View>
+        </View>
 
         <CustomButton
           title={loading ? "Updating..." : "Update"}
@@ -159,7 +309,7 @@ const EditProfile = ({ navigation }) => {
           fontWeight="400"
           marginTop={30}
           backgroundColor="#1F5546"
-          onPress={updateoperations}
+          onPress={handleUpdate}
           disabled={loading}
         />
       </ScrollView>
@@ -195,5 +345,77 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     marginTop: 10,
+  },
+  dropdownContainer: {
+    marginBottom: 16,
+  },
+  dropdownList: {
+    position: "absolute",
+    width: "100%",
+    zIndex: 1000,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: "#1F2937",
+    backgroundColor: "#fff",
+    marginTop: 10,
+  },
+  documentsTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1F2937",
+    marginBottom: 24,
+    marginTop:20
+  },
+  section: {
+    flexDirection:"row",
+    justifyContent:"space-between",
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1F2937",
+    marginBottom: 12,
+  },
+  documentSection: {
+    padding: 16,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 16,
+  },
+  documentTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 12,
+  },
+  uploadGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+  uploadItem: {
+    flex: 1,
+  },
+  uploadLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#6B7280",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+ 
+  documentButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#6B7280",
+    marginBottom: 8,
   },
 });

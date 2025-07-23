@@ -1,6 +1,6 @@
 "use client";
 
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { useState } from "react";
 import CustomText from "../../../components/CustomText";
 import Dropdown from "../../../components/Dropdown";
@@ -14,6 +14,7 @@ import { useRoute } from "@react-navigation/native";
 import { post } from "../../../services/ApiRequest";
 import { showSuccess, showError } from "../../../utils/toast";
 import { StatusBar } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 const Vehicle = () => {
   const route = useRoute();
@@ -309,208 +310,248 @@ const Vehicle = () => {
   };
 
   return (
-    <ScrollView
-      style={styles.scrollView}
-      contentContainerStyle={styles.contentContainer}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={styles.container}>
       <StatusBar
         backgroundColor="transparent"
         barStyle="light-content"
         translucent={true}
       />
 
-      <View style={styles.container}>
+      {/* Header with back button */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
         <CustomText
-          label="Vehicle information"
-          fontSize={26}
-          fontWeight="800"
-          marginTop={20}
+          label="Vehicle Information"
+          fontSize={20}
+          fontWeight="700"
+          style={styles.headerTitle}
         />
+        <View style={styles.headerRight} />
+      </View>
 
-        <View style={styles.checkboxContainer}>
-          <CustomCheckbox
-            value={isChecked}
-            onValueChange={(value) => setIsChecked(value)}
-          />
-          <CustomText
-            label="I am the car Owner"
-            fontSize={15}
-            fontWeight="500"
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          <View style={styles.checkboxContainer}>
+            <CustomCheckbox
+              value={isChecked}
+              onValueChange={(value) => setIsChecked(value)}
+            />
+            <CustomText
+              label="I am the car Owner"
+              fontSize={15}
+              fontWeight="500"
+            />
+          </View>
+
+          {isChecked && (
+            <>
+              <View style={styles.dropdownContainer}>
+                <Dropdown
+                  items={vehicleOptions}
+                  defaultValue={state.vehicleType}
+                  onSelectItem={(selectedItem) => {
+                    console.log("Selected Item:", selectedItem);
+                    // Extract only the value if selectedItem is an object
+                    const value =
+                      typeof selectedItem === "object" && selectedItem.value
+                        ? selectedItem.value
+                        : selectedItem;
+                    console.log("Extracted Value:", value);
+                    updateState("vehicleType", value);
+                  }}
+                  placeholder="Select your Vehicle"
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownList}
+                />
+                {errors.vehicleType && (
+                  <Text style={styles.errorText}>{errors.vehicleType}</Text>
+                )}
+              </View>
+
+              <CustomInput
+                withLabel={"Company"}
+                placeholder="Company (e.g., Toyota, Honda)"
+                marginTop={20}
+                value={state.vehicleNumber}
+                onChangeText={(text) => updateState("vehicleNumber", text)}
+                error={errors.vehicleNumber}
+              />
+
+              <CustomInput
+                withLabel={"Model"}
+                placeholder="Model (e.g., Vellfire, Alza)"
+                marginTop={20}
+                value={state.vehicleModel}
+                onChangeText={(text) => updateState("vehicleModel", text)}
+                error={errors.vehicleModel}
+              />
+
+              <View style={styles.row}>
+                <CustomInput
+                  withLabel={"Reg. Year"}
+                  placeholder="Reg. Year"
+                  marginTop={20}
+                  value={state.vehicleRegistrationYear}
+                  onChangeText={(text) =>
+                    updateState("vehicleRegistrationYear", text)
+                  }
+                  width={150}
+                  error={errors.vehicleRegistrationYear}
+                  keyboardType="numeric"
+                />
+                <CustomInput
+                  withLabel={"Engine CC"}
+                  placeholder="Engine CC"
+                  marginTop={20}
+                  value={state.vehicleEngineCC}
+                  onChangeText={(text) => updateState("vehicleEngineCC", text)}
+                  width={150}
+                  error={errors.vehicleEngineCC}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.row}>
+                <CustomInput
+                  withLabel={"Plate Number"}
+                  placeholder="Plate Number"
+                  marginTop={20}
+                  value={state.vehiclePlateNumber}
+                  onChangeText={(text) =>
+                    updateState("vehiclePlateNumber", text)
+                  }
+                  width={150}
+                  error={errors.vehiclePlateNumber}
+                />
+                <CustomInput
+                  withLabel={"Mileage"}
+                  placeholder="Mileage"
+                  marginTop={20}
+                  value={state.vehicleMileage}
+                  onChangeText={(text) => updateState("vehicleMileage", text)}
+                  width={150}
+                  error={errors.vehicleMileage}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <CustomInput
+                withLabel={"Color"}
+                placeholder="Color"
+                marginTop={20}
+                value={state.vehicleColor}
+                onChangeText={(text) => updateState("vehicleColor", text)}
+                error={errors.vehicleColor}
+              />
+
+              <CustomInput
+                withLabel={"Vehicle Registration Number"}
+                placeholder="Vehicle Registration Number"
+                marginTop={20}
+                value={state.vehicleRegistrationNumber}
+                onChangeText={(text) =>
+                  updateState("vehicleRegistrationNumber", text)
+                }
+                error={errors.vehicleRegistrationNumber}
+              />
+
+              {/* card image upload */}
+              <View style={styles.card}>
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Vehicle Documents</Text>
+
+                  <View style={styles.photoRow}>
+                    <DocumentUploadItem title="Grant (PDF)" type="grant" />
+                    <DocumentUploadItem
+                      title="Insurance (PDF)"
+                      type="insurance"
+                    />
+                  </View>
+                </View>
+                <DocumentUploadItem title="EVP Certificate" type="evp" />
+
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Vehicle Photos</Text>
+                  <View style={styles.photoGrid}>
+                    <View style={styles.photoRow}>
+                      <PhotoUploadItem title="Front" type="front" />
+                      <PhotoUploadItem title="Rear" type="back" />
+                    </View>
+                    <View style={styles.photoRow}>
+                      <PhotoUploadItem title="Left" type="left" />
+                      <PhotoUploadItem title="Right" type="right" />
+                    </View>
+                    <View style={styles.photoRow}>
+                      <PhotoUploadItem title="Interior" type="interior" />
+                      <PhotoUploadItem title="Dashboard" type="dashboard" />
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </>
+          )}
+
+          {/* Submit button is always shown */}
+          <CustomButton
+            title={uploading ? "Submitting..." : "Submit"}
+            onPress={submitSignup}
+            marginTop={20}
+            disabled={uploading}
           />
         </View>
-
-        {isChecked && (
-          <>
-            <View style={styles.dropdownContainer}>
-              <Dropdown
-                items={vehicleOptions}
-                defaultValue={state.vehicleType}
-                onSelectItem={(selectedItem) => {
-                  console.log("Selected Item:", selectedItem);
-                  // Extract only the value if selectedItem is an object
-                  const value =
-                    typeof selectedItem === "object" && selectedItem.value
-                      ? selectedItem.value
-                      : selectedItem;
-                  console.log("Extracted Value:", value);
-                  updateState("vehicleType", value);
-                }}
-                placeholder="Select your Vehicle"
-                style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownList}
-              />
-              {errors.vehicleType && (
-                <Text style={styles.errorText}>{errors.vehicleType}</Text>
-              )}
-            </View>
-
-            <CustomInput
-              withLabel={"Company"}
-              placeholder="Company (e.g., Toyota, Honda)"
-              marginTop={20}
-              value={state.vehicleNumber}
-              onChangeText={(text) => updateState("vehicleNumber", text)}
-              error={errors.vehicleNumber}
-            />
-
-            <CustomInput
-              withLabel={"Model"}
-              placeholder="Model (e.g., Vellfire, Alza)"
-              marginTop={20}
-              value={state.vehicleModel}
-              onChangeText={(text) => updateState("vehicleModel", text)}
-              error={errors.vehicleModel}
-            />
-
-            <View style={styles.row}>
-              <CustomInput
-                withLabel={"Reg. Year"}
-                placeholder="Reg. Year"
-                marginTop={20}
-                value={state.vehicleRegistrationYear}
-                onChangeText={(text) =>
-                  updateState("vehicleRegistrationYear", text)
-                }
-                width={150}
-                error={errors.vehicleRegistrationYear}
-                keyboardType="numeric"
-              />
-              <CustomInput
-                withLabel={"Engine CC"}
-                placeholder="Engine CC"
-                marginTop={20}
-                value={state.vehicleEngineCC}
-                onChangeText={(text) => updateState("vehicleEngineCC", text)}
-                width={150}
-                error={errors.vehicleEngineCC}
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={styles.row}>
-              <CustomInput
-                withLabel={"Plate Number"}
-                placeholder="Plate Number"
-                marginTop={20}
-                value={state.vehiclePlateNumber}
-                onChangeText={(text) => updateState("vehiclePlateNumber", text)}
-                width={150}
-                error={errors.vehiclePlateNumber}
-              />
-              <CustomInput
-                withLabel={"Mileage"}
-                placeholder="Mileage"
-                marginTop={20}
-                value={state.vehicleMileage}
-                onChangeText={(text) => updateState("vehicleMileage", text)}
-                width={150}
-                error={errors.vehicleMileage}
-                keyboardType="numeric"
-              />
-            </View>
-
-            <CustomInput
-              withLabel={"Color"}
-              placeholder="Color"
-              marginTop={20}
-              value={state.vehicleColor}
-              onChangeText={(text) => updateState("vehicleColor", text)}
-              error={errors.vehicleColor}
-            />
-
-            <CustomInput
-              withLabel={"Vehicle Registration Number"}
-              placeholder="Vehicle Registration Number"
-              marginTop={20}
-              value={state.vehicleRegistrationNumber}
-              onChangeText={(text) =>
-                updateState("vehicleRegistrationNumber", text)
-              }
-              error={errors.vehicleRegistrationNumber}
-            />
-
-            {/* card image upload */}
-            <View style={styles.card}>
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Vehicle Documents</Text>
-
-                <View style={styles.photoRow}>
-                  <DocumentUploadItem title="Grant (PDF)" type="grant" />
-                  <DocumentUploadItem
-                    title="Insurance (PDF)"
-                    type="insurance"
-                  />
-                </View>
-              </View>
-              <DocumentUploadItem title="EVP Certificate" type="evp" />
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Vehicle Photos</Text>
-                <View style={styles.photoGrid}>
-                  <View style={styles.photoRow}>
-                    <PhotoUploadItem title="Front" type="front" />
-                    <PhotoUploadItem title="Rear" type="back" />
-                  </View>
-                  <View style={styles.photoRow}>
-                    <PhotoUploadItem title="Left" type="left" />
-                    <PhotoUploadItem title="Right" type="right" />
-                  </View>
-                  <View style={styles.photoRow}>
-                    <PhotoUploadItem title="Interior" type="interior" />
-                    <PhotoUploadItem title="Dashboard" type="dashboard" />
-                  </View>
-                </View>
-              </View>
-            </View>
-          </>
-        )}
-
-        {/* Submit button is always shown */}
-        <CustomButton
-          title={uploading ? "Submitting..." : "Submit"}
-          onPress={submitSignup}
-          marginTop={20}
-          disabled={uploading}
-        />
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
 export default Vehicle;
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  backButton: {
+    padding: 5,
+    marginRight: 10,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: "center",
+    marginLeft: -40, // To center the title by offsetting the back button
+  },
+  headerRight: {
+    width: 40, // Same as back button for balance
+  },
+  content: {
+    padding: 20,
+    paddingTop: 10,
+  },
   scrollView: {
     flex: 1,
     backgroundColor: "#E8F6F2",
   },
   contentContainer: {
     paddingBottom: 40,
-  },
-  container: {
-    flex: 1,
-    padding: 10,
   },
   checkboxContainer: {
     flexDirection: "row",

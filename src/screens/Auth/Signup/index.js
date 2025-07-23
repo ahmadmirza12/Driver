@@ -272,6 +272,10 @@ const Signup = ({ navigation }) => {
       }
 
       setLoading(true);
+      console.log('Verifying OTP...');
+      console.log('Email:', state.email);
+      console.log('OTP entered:', otp);
+      
       const payload = {
         email: state.email,
         purpose: "registration",
@@ -282,21 +286,26 @@ const Signup = ({ navigation }) => {
       const response = await post("auth/verify-otp", payload);
       console.log("Verify OTP API Response:", response.data);
 
-      setVerificationToken(response.data.data.verificationToken);
-      await AsyncStorage.setItem(
-        "verificationToken",
-        response.data.data.verificationToken
-      );
-      showSuccess(`OTP verified successfully! ${response.data.data.otp}`);
-      return true;
+      if (response.data && response.data.data && response.data.data.verificationToken) {
+        setVerificationToken(response.data.data.verificationToken);
+        await AsyncStorage.setItem(
+          "verificationToken",
+          response.data.data.verificationToken
+        );
+        showSuccess("OTP verified successfully!");
+        return true;
+      } else {
+        throw new Error("Invalid response from server");
+      }
     } catch (error) {
       console.error("Verify OTP Error:", {
+        error: error.message,
         response: error.response?.data,
       });
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
-        "Failed to verify OTP";
+        "Failed to verify OTP. Please try again.";
       showError(errorMessage);
       return false;
     } finally {
@@ -391,6 +400,7 @@ const Signup = ({ navigation }) => {
     console.log("Handle next called for step:", step);
     console.log("Current state before validation:", state);
 
+    // Validate current step
     const hasErrors = validateStep(step);
     if (hasErrors) {
       console.log("Validation errors:", errors);
@@ -405,26 +415,39 @@ const Signup = ({ navigation }) => {
       return;
     }
 
-    if (step === 1) {
-      const otpSent = await Sendotp();
-      if (!otpSent) return;
-    }
-
-    if (step === 2) {
-      const isOtpVerified = await Verifyotp();
-      if (!isOtpVerified) return;
-    }
-
-    if (step < 3) {
-      setStep((prevStep) => {
-        const nextStep = prevStep + 1;
-        console.log(`Moving to step ${nextStep}`);
-        if (scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({ y: 0, animated: true });
+    try {
+      if (step === 1) {
+        const otpSent = await Sendotp();
+        if (otpSent) {
+          setStep(2);
+          setErrors({});
+          if (scrollViewRef.current) {
+            scrollViewRef.current.scrollTo({ y: 0, animated: true });
+          }
         }
-        setErrors({});
-        return nextStep;
-      });
+      } else if (step === 2) {
+        console.log('Verifying OTP and moving to step 3...');
+        const isOtpVerified = await Verifyotp();
+        console.log('OTP verification result:', isOtpVerified);
+        
+        if (isOtpVerified) {
+          console.log('OTP verified, moving to step 3');
+          setStep(3);
+          setErrors({});
+          if (scrollViewRef.current) {
+            scrollViewRef.current.scrollTo({ y: 0, animated: true });
+          }
+        } else {
+          console.log('OTP verification failed');
+          showError("OTP verification failed. Please try again.");
+        }
+      } else if (step === 3) {
+        // Handle final submission
+        await submitSignup();
+      }
+    } catch (error) {
+      console.error("Error in handleNext:", error);
+      showError("An error occurred. Please try again.");
     }
   };
 

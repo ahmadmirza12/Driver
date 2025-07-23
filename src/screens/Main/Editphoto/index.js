@@ -1,4 +1,4 @@
-import { SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import React, { useState } from "react";
 import { StatusBar } from "react-native";
 import { TouchableOpacity } from "react-native";
@@ -6,6 +6,7 @@ import { AntDesign } from "@expo/vector-icons";
 import { useNavigation } from "expo-router";
 import UploadImageUI from "../../../components/UploadImageUI";
 import { put } from "../../../services/ApiRequest";
+import CustomButton from "../../../components/CustomButton";
 
 const Editphoto = () => {
   const navigation = useNavigation();
@@ -65,7 +66,7 @@ const Editphoto = () => {
         <View style={{ width: 20 }} />
       </View>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content}>
         <View style={styles.card}>
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Vehicle Photos</Text>
@@ -108,7 +109,7 @@ const Editphoto = () => {
           </View>
 
           {/* Save Button */}
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={[styles.saveButton, loading && styles.saveButtonDisabled]}
             onPress={updatedoc}
             disabled={loading}
@@ -116,9 +117,18 @@ const Editphoto = () => {
             <Text style={styles.saveButtonText}>
               {loading ? "Saving..." : "Save Photos"}
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
+
+
+          <CustomButton
+            title="Save"
+            onPress={updatedoc}
+            loading={loading}
+            disabled={loading}
+           marginBottom={20}
+          />
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
