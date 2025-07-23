@@ -60,7 +60,7 @@ const CustomInput = ({
       {withLabel && (
         <CustomText
           label={withLabel}
-          marginBottom={8}
+          // marginBottom={8}
           color={labelColor || COLORS.black}
           fontFamily={fonts.semiBold}
           fontSize={16}

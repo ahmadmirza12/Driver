@@ -10,7 +10,7 @@ import MainStack from "./MainStack";
 const Stack = createNativeStackNavigator();
 
 const RootNavigation = () => {
-  const isToken = useSelector((state) => state.authConfig.token);
+  const Token = useSelector((state) => state.authConfig.token);
 
   const { language } = useSelector((state) => state.users);
 
@@ -28,7 +28,7 @@ const RootNavigation = () => {
         animation: "slide_from_right",
       }}
     >
-      {isToken ? (
+      {Token ? (
         <>
           <Stack.Screen name="MainStack" component={MainStack} />
           <Stack.Screen name="AuthStack" component={AuthStack} />

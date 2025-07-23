@@ -13,6 +13,7 @@ import {
 import { AntDesign } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import FlashMessage from "react-native-flash-message";
+import Icons from "../../../components/Icons";
 
 // Import custom components
 import CustomButton from "../../../components/CustomButton";
@@ -23,8 +24,9 @@ import UploadImageUI from "../../../components/UploadImageUI";
 import Dropdown from "../../../components/Dropdown";
 import OTPComponent from "../../../components/OTP";
 import fonts from "../../../assets/fonts";
-import { post } from "../../../services/ApiRequest";
+import { post,get } from "../../../services/ApiRequest";
 import { showSuccess, showError } from "../../../utils/toast";
+import { COLORS } from "../../../utils/COLORS";
 
 const Signup = ({ navigation }) => {
   const [step, setStep] = useState(1);
@@ -79,7 +81,8 @@ const Signup = ({ navigation }) => {
     accountNumber: "",
     selectedBank: "",
     selectedArea: "",
-    selectedCity: "",
+    selectedCity: [],
+    deriverType: "",
   });
 
   // Documents state to store uploaded image URLs
@@ -95,58 +98,6 @@ const Signup = ({ navigation }) => {
     { label: "Hong Leong Bank", value: "hong_leong" },
   ];
 
-  // Area options updated to match provided JSON
-  const areaOptions = [
-    { label: "Select Area", value: "" },
-    { label: "City Transport", value: "City Transport" },
-    { label: "Intercity", value: "Intercity" },
-    { label: "Klang", value: "Klang" },
-    { label: "Intercity", value: "Intercity" },
-  ];
-
-  // // Load form data from AsyncStorage on mount
-  // useEffect(() => {
-  //   const loadFormData = async () => {
-  //     try {
-  //       const formData = await AsyncStorage.getItem("signupForm");
-  //       const docData = await AsyncStorage.getItem("documents");
-  //       if (formData) {
-  //         const parsedData = JSON.parse(formData);
-  //         if (!parsedData.selectedCity || parsedData.selectedCity === "") {
-  //           parsedData.selectedCity = "kuala_lumpur";
-  //         }
-  //         setState(parsedData);
-  //         console.log("Loaded form data:", parsedData);
-  //       }
-  //       if (docData) {
-  //         const parsedDocuments = JSON.parse(docData);
-  //         setDocuments(parsedDocuments);
-  //         console.log("Loaded documents:", parsedDocuments);
-  //       }
-  //     } catch (error) {
-  //       console.error("Failed to load form data:", error);
-  //       Alert.alert("Error", "Failed to load saved data. Please try again.");
-  //     }
-  //   };
-  //   loadFormData();
-  // }, []);
-
-  // // Save form data whenever state changes
-  // useEffect(() => {
-  //   const saveFormData = async () => {
-  //     try {
-  //       await AsyncStorage.setItem("signupForm", JSON.stringify(state));
-  //       await AsyncStorage.setItem("documents", JSON.stringify(documents));
-  //       console.log("Form data saved successfully");
-  //     } catch (error) {
-  //       console.error("Failed to save form data:", error);
-  //     }
-  //   };
-
-  //   if (state.firstName || state.email || state.phoneNumber) {
-  //     saveFormData();
-  //   }
-  // }, [state, documents]);
 
   const updateState = (field, value) => {
     console.log(`Updating ${field} with value:`, value);
@@ -214,7 +165,10 @@ const Signup = ({ navigation }) => {
       }
 
       console.log("Validating city - current value:", state.selectedCity);
-      if (cityTouched && (!state.selectedCity || state.selectedCity === "")) {
+      if (
+        cityTouched &&
+        (!state.selectedCity || state.selectedCity.length === 0)
+      ) {
         console.log("City validation failed - no city selected");
         newErrors.selectedCity = "Please select your city";
         hasErrors = true;
@@ -242,10 +196,6 @@ const Signup = ({ navigation }) => {
         hasErrors = true;
       }
 
-      // if (!state.selectedArea) {
-      //   newErrors.selectedArea = "Area selection is required";
-      //   hasErrors = true;
-      // }
 
       if (!documents.icFront || !documents.icBack) {
         newErrors.ic = "Both IC front and back are required";
@@ -263,9 +213,29 @@ const Signup = ({ navigation }) => {
     return hasErrors;
   };
 
+  const handleCheckEmail = async () => {
+    try {
+      const response = await get("auth/email-availability", {
+        email: state.email,
+      });
+      console.log("API Response:", response.data);
+    } catch (error) {
+      console.error(
+        "Error checking email:",
+        error.response?.data || error.message
+      );
+      setErrors({
+        emailError:
+          error.response?.data?.message || "Error checking email availability",
+      });
+    }
+  };
+
   // Handle Send OTP verification
   const Sendotp = async () => {
     try {
+      await handleCheckEmail();
+
       setLoading(true);
       const payload = {
         email: state.email,
@@ -353,7 +323,7 @@ const Signup = ({ navigation }) => {
         name: `${state.firstName} ${state.lastName}`.trim(),
         password: state.password,
         verificationToken: verificationToken,
-        driverType: "ASRA",
+        driverType: state.deriverType,
         personalIdFrontUrl: documents.icFront,
         personalIdBackUrl: documents.icBack,
         driverLicenseFrontUrl: documents.licenseFront,
@@ -362,7 +332,7 @@ const Signup = ({ navigation }) => {
           psvLicenseFrontUrl: documents.psvLicense,
         }),
         ...(documents.jobPermit && { psvLicenseBackUrl: documents.jobPermit }),
-        operations: [state.selectedCity],
+        operations: Array.isArray(state.selectedCity) ? state.selectedCity : [],
         bankDetails: {
           bankName:
             bankOptions.find((bank) => bank.value === state.selectedBank)
@@ -373,13 +343,16 @@ const Signup = ({ navigation }) => {
         isCarOwner: false,
       };
 
+      console.log("Selected cities for operations:", state.selectedCity);
       console.log("Navigating to Vehicle with data:", userData);
 
       // Navigate to Vehicle screen with the user data
       navigation.navigate("Vehicle", { userData });
     } catch (error) {
       console.error("Error in signup:", error);
-      showError("An error occurred while processing your request. Please try again.");
+      showError(
+        "An error occurred while processing your request. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -492,10 +465,60 @@ const Signup = ({ navigation }) => {
         <Text style={styles.stepTitle}>Nice to meet you!</Text>
         <Text style={styles.stepSubtitle}>Please tell us more about you</Text>
 
+        <View style={styles.deriverContainer}>
+          <TouchableOpacity
+            style={[
+              styles.deriverButton,
+              state.deriverType === "ASRA" && styles.selectedButton,
+            ]}
+            onPress={() => updateState("deriverType", "ASRA")}
+          >
+            <Icons
+              family={"MaterialIcons"}
+              name="local-taxi"
+              size={24}
+              color={state.deriverType === "ASRA" ? "#ffffff" : "#000000"}
+              style={styles.icon}
+            />
+            <Text
+              style={[
+                styles.deriverText,
+                state.deriverType === "ASRA" && styles.selectedText,
+              ]}
+            >
+              ASRA
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.deriverButton,
+              state.deriverType === "Host" && styles.selectedButton,
+            ]}
+            onPress={() => updateState("deriverType", "Host")}
+          >
+            <Icons
+              family={"MaterialIcons"}
+              name="person-pin-circle"
+              size={24}
+              color={state.deriverType === "Host" ? "#ffffff" : "#000000"}
+              style={styles.icon}
+            />
+            <Text
+              style={[
+                styles.deriverText,
+                state.deriverType === "Host" && styles.selectedText,
+              ]}
+            >
+              Host
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <CustomText
           label="First Name"
           fontSize={15}
-          marginTop={30}
+          // marginTop={30}
           fontWeight="500"
         />
         <CustomInput
@@ -510,7 +533,7 @@ const Signup = ({ navigation }) => {
         <CustomText
           label="Last Name"
           fontSize={15}
-          marginTop={15}
+          // marginTop={15}
           fontWeight="500"
         />
         <CustomInput
@@ -525,7 +548,7 @@ const Signup = ({ navigation }) => {
         <CustomText
           label="Email Address"
           fontSize={15}
-          marginTop={15}
+          // marginTop={15}
           fontWeight="500"
         />
         <CustomInput
@@ -539,12 +562,7 @@ const Signup = ({ navigation }) => {
           containerStyle={errors.email ? styles.errorBorder : {}}
         />
 
-        <CustomText
-          label="Phone Number"
-          fontSize={15}
-          marginTop={15}
-          fontWeight="500"
-        />
+        <CustomText label="Phone Number" fontSize={15} fontWeight="500" />
         <CustomInput
           placeholder="Phone Number"
           marginTop={10}
@@ -554,13 +572,28 @@ const Signup = ({ navigation }) => {
           error={errors.phoneNumber}
           containerStyle={errors.phoneNumber ? styles.errorBorder : {}}
         />
+         <CustomText label="Operations" fontSize={15} fontWeight="500" />
+           <View style={styles.dropdownContainer}>
+          <Dropdown
+            items={cityOptions}
+            multiple={true}
+            defaultValue={state.selectedCity}
+            onSelectItem={(selectedItems) => {
+              console.log("Selected Operations:", selectedItems);
+              // If it's an array, extract just the values
+              const values = Array.isArray(selectedItems)
+                ? selectedItems.map((item) => item.value)
+                : [];
+              console.log("Updating selectedCity with values:", values);
+              updateState("selectedCity", values);
+            }}
+            placeholder="Select Operations"
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.dropdownList}
+          />
+        </View>
 
-        <CustomText
-          label="Password"
-          fontSize={15}
-          marginTop={15}
-          fontWeight="500"
-        />
+        <CustomText label="Password" fontSize={15} fontWeight="500" />
         <CustomInput
           placeholder="Password"
           marginTop={10}
@@ -571,12 +604,7 @@ const Signup = ({ navigation }) => {
           containerStyle={errors.password ? styles.errorBorder : {}}
         />
 
-        <CustomText
-          label="Confirm Password"
-          fontSize={15}
-          marginTop={15}
-          fontWeight="500"
-        />
+        <CustomText label="Confirm Password" fontSize={15} fontWeight="500" />
         <CustomInput
           placeholder="Confirm Password"
           marginTop={10}
@@ -587,35 +615,8 @@ const Signup = ({ navigation }) => {
           containerStyle={errors.confirmPassword ? styles.errorBorder : {}}
         />
 
-        <CustomText
-          label="City"
-          fontSize={15}
-          marginTop={15}
-          fontWeight="500"
-        />
-        <View style={styles.dropdownContainer}>
-          <Dropdown
-            items={cityOptions}
-            defaultValue={state.selectedCity}
-            onSelectItem={(value) => {
-              console.log("Selected city:", value);
-              updateState("selectedCity", value.value);
-            }}
-            placeholder="Select your city"
-            style={[styles.dropdown, errors.selectedCity && styles.errorBorder]}
-            dropDownContainerStyle={{
-              position: "absolute",
-              width: "100%",
-              zIndex: 1000,
-              elevation: 5,
-            }}
-          />
-          {errors.selectedCity && (
-            <Text style={[styles.errorText, { fontWeight: "bold" }]}>
-              {errors.selectedCity}
-            </Text>
-          )}
-        </View>
+       
+     
       </ScrollView>
 
       <View style={styles.buttonContainer}>
@@ -771,22 +772,21 @@ const Signup = ({ navigation }) => {
             <Dropdown
               items={bankOptions}
               defaultValue={state.selectedBank}
-              onSelectItem={(value) => {
-                console.log("Selected bank:", value);
-                updateState("selectedBank", value.value);
+              onSelectItem={(selectedItem) => {
+                console.log("Selected Item:", selectedItem);
+                // Extract only the value if selectedItem is an object
+                const value =
+                  typeof selectedItem === "object" && selectedItem.value
+                    ? selectedItem.value
+                    : selectedItem;
+                console.log("Extracted Value:", value);
+                updateState("selectedBank", value);
               }}
               placeholder="Select Bank"
-              style={[
-                styles.dropdown,
-                errors.selectedBank && styles.errorBorder,
-              ]}
-              dropDownContainerStyle={{
-                position: "absolute",
-                width: "100%",
-                zIndex: 1000,
-                elevation: 5,
-              }}
+              style={styles.dropdown}
+              dropDownContainerStyle={styles.dropdownList}
             />
+
             {errors.selectedBank && (
               <Text style={[styles.errorText, { fontWeight: "bold" }]}>
                 {errors.selectedBank}
@@ -809,42 +809,6 @@ const Signup = ({ navigation }) => {
             <Text style={styles.errorText}>{errors.accountNumber}</Text>
           )}
         </View>
-
-        {/* <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Area of Operation</Text>
-          <View style={styles.dropdownContainer}>
-            <Dropdown
-              items={areaOptions}
-              defaultValue={state.selectedArea}
-              onSelectItem={(value) => {
-           
-                console.log("Selected area:", value);
-                
-                // Set the selected value in state
-                setState(prev => ({
-                  ...prev,
-                  selectedArea: value
-                }));
-                
-                
-             
-                
-                
-              }}
-              placeholder="Select Area"
-              dropDownContainerStyle={{
-                position: 'absolute',
-                width: '100%',
-                zIndex: 1000,
-                elevation: 5,
-              }}
-              style={{
-                zIndex: 1000,
-                elevation: 5,
-              }}
-            />
-          </View>
-        </View> */}
       </ScrollView>
 
       <View style={styles.buttonContainer}>
@@ -883,7 +847,13 @@ const Signup = ({ navigation }) => {
         <ScreenWrapper scrollEnabled={false}>
           <View style={styles.headerRow}>
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
+              onPress={() => {
+                if (step > 1) {
+                  setStep(step - 1);
+                } else {
+                  navigation.goBack();
+                }
+              }}
               accessibilityLabel="Go back"
             >
               <AntDesign name="left" size={24} color="#000" />
@@ -902,8 +872,43 @@ const Signup = ({ navigation }) => {
 const styles = StyleSheet.create({
   scrollViewContent: {
     flexGrow: 1,
-    paddingBottom: 30,
+    // paddingBottom: 30,
   },
+
+  deriverContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    // marginTop: 20,
+    marginBottom: 20,
+  },
+  deriverButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    width: "48%",
+    backgroundColor: "#fff",
+  },
+  selectedButton: {
+    backgroundColor: COLORS.btnColor,
+    borderColor: "#4a90e2",
+  },
+  deriverText: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginLeft: 10,
+  },
+  selectedText: {
+    color: "#ffffff",
+  },
+  icon: {
+    marginRight: 5,
+  },
+
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
@@ -925,7 +930,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   button: {
-    marginBottom: 10,
+    marginBottom: 30,
   },
   progressContainer: {
     height: 6,
@@ -964,8 +969,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   dropdownContainer: {
-    marginTop: 10,
-    marginBottom: 15,
+    // marginTop: 10,
+    marginBottom: 10,
   },
   errorBorder: {
     borderColor: "#EF4444",

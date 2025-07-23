@@ -10,7 +10,7 @@ const DualText = ({ title, secondTitle, marginBottom, marginTop, onPress }) => {
     <CustomText
       color={COLORS.black}
       alignSelf="center"
-      marginTop={260}
+      marginTop={198}
       label={title}
       fontSize={16}
     >

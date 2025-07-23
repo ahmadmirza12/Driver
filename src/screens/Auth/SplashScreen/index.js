@@ -10,7 +10,7 @@ export default function SplashScreen() {
   useEffect(() => {
     setTimeout(() => {
       if (isOnBoarding) {
-        navigation.replace('GetStarted')
+        navigation.replace('Signup')
       } else {
         navigation.replace('OnBoarding')
       }

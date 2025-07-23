@@ -15,67 +15,61 @@ import CustomInput from "../../../components/CustomInput";
 import CustomText from "../../../components/CustomText";
 import UploadImage from "../../../components/UploadImage";
 import { useRoute } from "@react-navigation/native";
-import { post } from "../../../services/ApiRequest";
+import { post, put } from "../../../services/ApiRequest";
 import { showError, showSuccess } from "../../../utils/toast";
+import Dropdown from "../../../components/Dropdown";
 
 const EditProfile = ({ navigation }) => {
   const route = useRoute();
   const { profileData } = route.params || {};
-  // console.log("=====================================>", profileData);
 
   // Initialize form state with profile data
   const [states, setStates] = useState({
     firstName: profileData?.data?.user?.name?.split(" ")[0] || "",
     lastName: profileData?.data?.user?.name?.split(" ")[1] || "",
-    age: profileData?.data?.user?.age || "", 
+    age: profileData?.data?.user?.age || "",
     email: profileData?.data?.user?.email || "",
     password: "",
     phoneNumber: profileData?.data?.user?.phone || "",
+    selectedCity: [], // Initialize as empty array for multiple selection
   });
 
+  const [loading, setLoading] = useState(false);
 
-  const errors = {
-    firstName: "",
-    lastName: "",
-    age: "",
-    email: "",
-    password: "",
-    phoneNumber: "",
-  };
-
-
-  const [loading,setLoading]=useState(false)
-
-  const updateProfile = async () => {
+  const updateoperations = async () => {
+    const data = {
+      operations: Array.isArray(states.selectedCity) 
+        ? states.selectedCity.map(city => city.value || city) 
+        : [states.selectedCity?.value || states.selectedCity || '']
+    };
+    
+    console.log('Sending data:', data);
+    
     try {
       setLoading(true);
-      const response = await post("auth/update-profile", {
-        name: states.firstName + " " + states.lastName,
-        phone: states.phoneNumber,
-      });
-      console.log("Update Profile API Response:", response.data);
+      const response = await put("rider/operations", data);
+      console.log("Update Operations API Response:", response.data);
       setLoading(false);
-      showSuccess("Profile updated successfully");
+      showSuccess("Operations updated successfully");
       navigation.goBack();
     } catch (error) {
-      console.error("Update Profile Error:", error);
+      console.error("Update Operations Error:", error);
       setLoading(false);
-      showError("Failed to update profile. Please try again.");
+      showError("Failed to update Operations. Please try again.");
     }
   };
 
-
-
-
-
-
-
-
+  const cityOptions = [
+    { label: "Kuala Lumpur", value: "kuala_lumpur" },
+    { label: "Penang", value: "penang" },
+    { label: "Johor Bahru", value: "johor_bahru" },
+    { label: "Ipoh", value: "ipoh" },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#1F5546" barStyle="light-content" />
-
+      
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -101,44 +95,38 @@ const EditProfile = ({ navigation }) => {
         <CustomInput
           placeholder="Name"
           marginTop={10}
-          value={states.firstName} 
+          value={states.firstName}
           onChangeText={(text) =>
             setStates((prev) => ({ ...prev, firstName: text }))
           }
-          error={errors.firstName}
         />
 
         <CustomText label="Surname" fontSize={15} fontWeight="500" />
         <CustomInput
           placeholder="Surname"
           marginTop={10}
-          value={states.lastName} 
+          value={states.lastName}
           onChangeText={(text) =>
             setStates((prev) => ({ ...prev, lastName: text }))
           }
-          error={errors.lastName}
         />
 
-        <CustomText label="Age" fontSize={15} fontWeight="500" />
-        <CustomInput
-          placeholder="Age"
-          marginTop={10}
-          keyboardType="numeric"
-          value={states.age} 
-          onChangeText={(text) => setStates((prev) => ({ ...prev, age: text }))}
-          error={errors.age}
-        />
-
-        <CustomText label="Password" fontSize={15} fontWeight="500" />
-        <CustomInput
-          placeholder="Password"
-          marginTop={10}
-          secureTextEntry
-          value={states.password} 
-          onChangeText={(text) =>
-            setStates((prev) => ({ ...prev, password: text }))
-          }
-          error={errors.password}
+        <CustomText label="Operations" fontSize={15} fontWeight="500" />
+        <Dropdown
+          items={cityOptions}
+          multiple={true}
+          defaultValue={states.selectedCity}
+          onSelectItem={(selectedItems) => {
+            console.log("Selected operations:", selectedItems);
+            setStates((prev) => ({ ...prev, selectedCity: selectedItems }));
+          }}
+          placeholder="Select your operations"
+          style={styles.dropdown}
+          dropDownContainerStyle={{
+            position: "absolute",
+            width: "100%",
+            zIndex: 1000,
+          }}
         />
 
         <CustomText label="Email Address" fontSize={15} fontWeight="500" />
@@ -146,11 +134,10 @@ const EditProfile = ({ navigation }) => {
           placeholder="Your Email Address"
           marginTop={10}
           keyboardType="email-address"
-          value={states.email} 
+          value={states.email}
           onChangeText={(text) =>
             setStates((prev) => ({ ...prev, email: text }))
           }
-          error={errors.email}
         />
 
         <CustomText label="Phone Number" fontSize={15} fontWeight="500" />
@@ -158,21 +145,22 @@ const EditProfile = ({ navigation }) => {
           placeholder="Number"
           marginTop={10}
           keyboardType="phone-pad"
-          value={states.phoneNumber} 
+          value={states.phoneNumber}
           onChangeText={(text) =>
             setStates((prev) => ({ ...prev, phoneNumber: text }))
           }
-          error={errors.phoneNumber}
         />
 
         <CustomCountryPick />
+
         <CustomButton
-          title="Update"
+          title={loading ? "Updating..." : "Update"}
           fontSize={16}
           fontWeight="400"
           marginTop={30}
           backgroundColor="#1F5546"
-          onPress={updateProfile}
+          onPress={updateoperations}
+          disabled={loading}
         />
       </ScrollView>
     </SafeAreaView>
@@ -204,5 +192,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 40,
+  },
+  dropdown: {
+    marginTop: 10,
   },
 });

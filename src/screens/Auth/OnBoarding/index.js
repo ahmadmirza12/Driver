@@ -119,7 +119,7 @@ const OnBoarding = () => {
           activeOpacity={0.6}
           onPress={() => {
             if (currentIndex === array.length - 1) {
-              navigation.replace("GetStarted");
+              navigation.replace("Login");
               dispatch(setOnBoarding(true));
             } else {
               setCurrentIndex((prev) => prev + 1);

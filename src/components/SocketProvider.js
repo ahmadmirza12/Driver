@@ -34,24 +34,24 @@ const SocketProvider = ({children}) => {
       setSocket(newSocket);
     });
     newSocket.on('connect_error', error => {
-      console.error('Socket connection error:', error);
+      // console.error('Socket connection error:', error);
     });
 
     newSocket.on('unauthorized', error => {
-      console.error('Unauthorized socket connection:', error.message);
+      // console.error('Unauthorized socket connection:', error.message);
     });
     newSocket.on('noti-unseen', res => {
       dispatch(setUnseenBadge(res));
     });
 
     newSocket.on('disconnect', () => {
-      console.log('Socket disconnected. Attempting to reconnect...');
+      // console.log('Socket disconnected. Attempting to reconnect...');
       setSocket(null);
       initializeSocket();
     });
 
     newSocket.on('reconnect', attemptNumber => {
-      console.log('Reconnected after', attemptNumber, 'attempts');
+      // console.log('Reconnected after', attemptNumber, 'attempts');
       // Re-authenticate after reconnection
       newSocket.emit('authenticate', token);
     });

@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, View, Text } from 'react-native'
 import DropDownPicker from 'react-native-dropdown-picker'
-
 
 const Dropdown = ({ 
   items = [],
@@ -16,26 +15,40 @@ const Dropdown = ({
   multiple = false,
   searchable = false,
   disabled = false,
-  zIndex = 1000,
-  zIndexInverse = 1000
+  zIndex = 1002,
+  zIndexInverse = 1002
 }) => {
   const [open, setOpen] = useState(false)
-  const [value, setValue] = useState(defaultValue)
-  const [dropdownItems, setDropdownItems] = useState(items)
+  const [value, setValue] = useState(multiple ? (Array.isArray(defaultValue) ? defaultValue : []) : defaultValue)
+  const [dropdownItems, setDropdownItems] = useState(Array.isArray(items) ? items : [])
 
   const handleValueChange = (selectedValue) => {
     setValue(selectedValue)
     if (onSelectItem) {
-      const selectedItem = dropdownItems.find(item => item.value === selectedValue)
-      onSelectItem(selectedItem || selectedValue)
+      if (multiple) {
+        // For multiple selections, map selected values to their items
+        const selectedItems = dropdownItems.filter(item => selectedValue.includes(item.value))
+        onSelectItem(selectedItems)
+      } else {
+        // For single selection, find the selected item
+        const selectedItem = dropdownItems.find(item => item.value === selectedValue)
+        onSelectItem(selectedItem || selectedValue)
+      }
     }
   }
 
-  // Get the label of the selected item
-  const getSelectedLabel = () => {
-    if (!value) return null;
+  // Get labels of selected items for multiple selection or single selection
+  const getSelectedLabels = () => {
+    if (!value) return [];
+    if (multiple) {
+      // Ensure value is an array before calling includes
+      const valuesArray = Array.isArray(value) ? value : [value];
+      return dropdownItems
+        .filter(item => valuesArray.includes(item.value))
+        .map(item => item.label);
+    }
     const selected = dropdownItems.find(item => item.value === value);
-    return selected ? selected.label : null;
+    return selected ? [selected.label] : [];
   }
 
   return (
@@ -78,6 +91,16 @@ const Dropdown = ({
           nestedScrollEnabled: true,
         }}
       />
+      {value && (multiple || getSelectedLabels().length > 0) && (
+        <View style={styles.selectedValuesContainer}>
+          <Text style={styles.selectedValuesTitle}>Selected Operations</Text>
+          {getSelectedLabels().map((label, index) => (
+            <Text key={index} style={styles.selectedValueText}>
+              {label}
+            </Text>
+          ))}
+        </View>
+      )}
     </View>
   )
 }
@@ -164,5 +187,25 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     tintColor: '#48bb78',
+  },
+  selectedValuesContainer: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderColor: '#e2e8f0',
+    borderWidth: 1,
+  },
+  selectedValuesTitle: {
+    fontSize: 14,
+    color: '#2d3748',
+    fontWeight: '600',
+    marginBottom: 5,
+  },
+  selectedValueText: {
+    fontSize: 14,
+    color: '#2d3748',
+    fontWeight: '400',
+    marginVertical: 2,
   },
 })

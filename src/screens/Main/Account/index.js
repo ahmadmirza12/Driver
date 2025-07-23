@@ -15,21 +15,24 @@ import { PNGIcons } from "../../../assets/images/icons";
 import UploadImage from "../../../components/UploadImage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { get } from "../../../services/ApiRequest";
+import { useDispatch } from 'react-redux';
+import { logout } from '../../../store/reducer/AuthConfig';
 
 const Account = ({ navigation }) => {
-  
+  const dispatch = useDispatch();
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(false);
   console.log("profileData========================",profileData)
-  const token = AsyncStorage.getItem("token");
+ 
   // console.log(token);
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem('token');
+      // await AsyncStorage.removeItem('token');
+      dispatch(logout());
       navigation.reset({
         index: 0,
-        routes: [{ name: 'AuthStack', params: { screen: 'GetStarted' } }],
+        routes: [{ name: 'AuthStack', params: { screen: 'Login' } }],
       });
     } catch (error) {
       console.error('Error logging out:', error);
@@ -55,7 +58,7 @@ const Account = ({ navigation }) => {
     {
       icon: PNGIcons.Edit,
       title: "Edit Profile",
-      onPress: () => navigation.navigate("EditProfile",{profileData}),
+      onPress: () => navigation.navigate("Editowner",{profileData:profileData}),
     },
     {
       icon: PNGIcons.Earning,
@@ -108,13 +111,13 @@ const Account = ({ navigation }) => {
   return (
     <View style={{ flex: 1, backgroundColor: "#E8F6F2" }}>
       <StatusBar
-        backgroundColor="#1F5546"
-        barStyle="light-content"
-        translucent={false}
-      />
+             backgroundColor="transparent"
+             barStyle="light-content"
+             translucent={true}
+           />
 
       <View style={styles.header}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={()=>navigation.goBack()}>
           <AntDesign name="left" size={20} color="white" />
         </TouchableOpacity>
         <Text style={styles.EarningText}>Account</Text>
@@ -174,7 +177,7 @@ export default Account;
 const styles = StyleSheet.create({
   header: {
     backgroundColor: "#1F5546",
-    height: 114,
+    height: 100,
     width: "100%",
     flexDirection: "row",
     alignItems: "center",

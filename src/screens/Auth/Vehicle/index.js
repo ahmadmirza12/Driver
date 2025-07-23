@@ -1,23 +1,24 @@
-"use client"
+"use client";
 
-import { StyleSheet, Text, View } from "react-native"
-import { useState } from "react"
-import CustomText from "../../../components/CustomText"
-import Dropdown from "../../../components/Dropdown"
-import CustomCheckbox from "../../../components/CustomCheckBox"
-import CustomInput from "../../../components/CustomInput"
-import UploadImageUI from "../../../components/UploadImageUI"
-import { ScrollView } from "react-native"
-import CustomButton from "../../../components/CustomButton"
-import { useNavigation } from "expo-router"
-import { useRoute } from "@react-navigation/native"
-import { post } from "../../../services/ApiRequest"
-import { showSuccess, showError } from "../../../utils/toast"
+import { StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import CustomText from "../../../components/CustomText";
+import Dropdown from "../../../components/Dropdown";
+import CustomCheckbox from "../../../components/CustomCheckBox";
+import CustomInput from "../../../components/CustomInput";
+import UploadImageUI from "../../../components/UploadImageUI";
+import { ScrollView } from "react-native";
+import CustomButton from "../../../components/CustomButton";
+import { useNavigation } from "expo-router";
+import { useRoute } from "@react-navigation/native";
+import { post } from "../../../services/ApiRequest";
+import { showSuccess, showError } from "../../../utils/toast";
+import { StatusBar } from "react-native";
 
 const Vehicle = () => {
-  const route = useRoute()
-  const { userData } = route.params || {}
-  const navigation = useNavigation()
+  const route = useRoute();
+  const { userData } = route.params || {};
+  const navigation = useNavigation();
 
   const vehicleOptions = [
     { label: "Select Vehicle", value: "" },
@@ -25,7 +26,7 @@ const Vehicle = () => {
     { label: "Bike", value: "bike" },
     { label: "Truck", value: "truck" },
     { label: "Bus", value: "bus" },
-  ]
+  ];
 
   const [state, setState] = useState({
     vehicleType: "",
@@ -37,10 +38,10 @@ const Vehicle = () => {
     vehicleEngineCC: "",
     vehiclePlateNumber: "",
     vehicleMileage: "",
-  })
+  });
 
-  const [isChecked, setIsChecked] = useState(false)
-  const [errors, setErrors] = useState({})
+  const [isChecked, setIsChecked] = useState(false);
+  const [errors, setErrors] = useState({});
   const [documentImages, setDocumentImages] = useState({
     grant: null,
     insurance: null,
@@ -51,22 +52,22 @@ const Vehicle = () => {
     right: null,
     interior: null,
     dashboard: null,
-  })
-  const [uploading, setUploading] = useState(false)
+  });
+  const [uploading, setUploading] = useState(false);
 
   const updateState = (field, value) => {
-    setState((prev) => ({ ...prev, [field]: value }))
+    setState((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: null }))
+      setErrors((prev) => ({ ...prev, [field]: null }));
     }
-  }
+  };
 
   const handleImageUpload = (type) => (url) => {
     setDocumentImages((prev) => ({
       ...prev,
       [type]: url,
-    }))
-  }
+    }));
+  };
 
   const DocumentUploadItem = ({ title, type }) => {
     return (
@@ -76,8 +77,8 @@ const Vehicle = () => {
         initialImage={documentImages[type]}
         compact={true}
       />
-    )
-  }
+    );
+  };
 
   const PhotoUploadItem = ({ title, type }) => {
     return (
@@ -87,8 +88,8 @@ const Vehicle = () => {
         initialImage={documentImages[type]}
         compact={true}
       />
-    )
-  }
+    );
+  };
 
   const validateCarOwnerForm = () => {
     // Validate required fields for car owners
@@ -101,82 +102,106 @@ const Vehicle = () => {
       "vehiclePlateNumber",
       "vehicleMileage",
       "vehicleColor",
-    ]
+    ];
 
-    const newErrors = {}
-    let hasErrors = false
+    const newErrors = {};
+    let hasErrors = false;
 
     requiredFields.forEach((field) => {
       if (!state[field] || state[field].trim() === "") {
-        newErrors[field] = `${field.replace(/([A-Z])/g, " $1").toLowerCase()} is required`
-        hasErrors = true
+        newErrors[field] = `${field
+          .replace(/([A-Z])/g, " $1")
+          .toLowerCase()} is required`;
+        hasErrors = true;
       }
-    })
+    });
 
     // Validate vehicle type is not empty selection
     if (state.vehicleType === "") {
-      newErrors.vehicleType = "Please select a vehicle type"
-      hasErrors = true
+      newErrors.vehicleType = "Please select a vehicle type";
+      hasErrors = true;
     }
 
     // Validate numeric fields
-    if (state.vehicleRegistrationYear && isNaN(Number.parseInt(state.vehicleRegistrationYear))) {
-      newErrors.vehicleRegistrationYear = "Registration year must be a valid number"
-      hasErrors = true
+    if (
+      state.vehicleRegistrationYear &&
+      isNaN(Number.parseInt(state.vehicleRegistrationYear))
+    ) {
+      newErrors.vehicleRegistrationYear =
+        "Registration year must be a valid number";
+      hasErrors = true;
     }
 
-    if (state.vehicleEngineCC && isNaN(Number.parseInt(state.vehicleEngineCC))) {
-      newErrors.vehicleEngineCC = "Engine CC must be a valid number"
-      hasErrors = true
+    if (
+      state.vehicleEngineCC &&
+      isNaN(Number.parseInt(state.vehicleEngineCC))
+    ) {
+      newErrors.vehicleEngineCC = "Engine CC must be a valid number";
+      hasErrors = true;
     }
 
     if (hasErrors) {
-      setErrors(newErrors)
-      showError("Please fill in all required fields correctly")
-      return false
+      setErrors(newErrors);
+      showError("Please fill in all required fields correctly");
+      return false;
     }
 
     // Validate document images
-    const requiredDocuments = ["grant", "insurance", "evp"]
-    const missingDocuments = requiredDocuments.filter((doc) => !documentImages[doc])
+    const requiredDocuments = ["grant", "insurance", "evp"];
+    const missingDocuments = requiredDocuments.filter(
+      (doc) => !documentImages[doc]
+    );
 
     if (missingDocuments.length > 0) {
-      showError(`Please upload all required documents: ${missingDocuments.join(", ")}`)
-      return false
+      showError(
+        `Please upload all required documents: ${missingDocuments.join(", ")}`
+      );
+      return false;
     }
 
     // Validate vehicle photos
-    const requiredPhotos = ["front", "back", "left", "right", "interior", "dashboard"]
-    const missingPhotos = requiredPhotos.filter((photo) => !documentImages[photo])
+    const requiredPhotos = [
+      "front",
+      "back",
+      "left",
+      "right",
+      "interior",
+      "dashboard",
+    ];
+    const missingPhotos = requiredPhotos.filter(
+      (photo) => !documentImages[photo]
+    );
 
     if (missingPhotos.length > 0) {
-      showError(`Please upload all required vehicle photos: ${missingPhotos.join(", ")}`)
-      return false
+      showError(
+        `Please upload all required vehicle photos: ${missingPhotos.join(", ")}`
+      );
+      return false;
     }
 
-    return true
-  }
+    return true;
+  };
 
   const submitSignup = async () => {
     // Prevent multiple submissions
     if (uploading) {
-      return
+      return;
     }
 
     // If user is car owner, validate the form
     if (isChecked && !validateCarOwnerForm()) {
-      return
+      return;
     }
 
     try {
-      setUploading(true)
+      setUploading(true);
 
       // Base data structure with userData from previous screen
       const data = {
         bankDetails: {
           accountHolderName: userData.bankDetails?.accountHolderName || "",
           accountNumber: userData.bankDetails?.accountNumber || "",
-          bankName: userData.bankDetails?.bankName || "",
+          bankName: userData.bankDetails?.bankName || "name",
         },
         driverLicenseBackUrl: userData.driverLicenseBackUrl || "",
         driverLicenseFrontUrl: userData.driverLicenseFrontUrl || "",
@@ -192,7 +217,7 @@ const Vehicle = () => {
         psvLicenseFrontUrl: userData.psvLicenseFrontUrl || "",
         verificationToken: userData.verificationToken || "",
         isCarOwner: isChecked,
-      }
+      };
 
       // Only add vehicle data if user is car owner
       if (isChecked) {
@@ -200,20 +225,21 @@ const Vehicle = () => {
           name: `${state.vehicleNumber} ${state.vehicleModel}`,
           category: state.vehicleType || "car",
           model: state.vehicleModel,
-          manufacturingYear: Number.parseInt(state.vehicleRegistrationYear) || 0,
+          manufacturingYear:
+            Number.parseInt(state.vehicleRegistrationYear) || 0,
           make: state.vehicleNumber,
           registrationYear: Number.parseInt(state.vehicleRegistrationYear) || 0,
           engineCapacity: state.vehicleEngineCC,
           color: state.vehicleColor,
           plateNumber: state.vehiclePlateNumber,
           mileage: state.vehicleMileage,
-        }
+        };
 
         data.vehicleDocuments = {
           grantCertificateUrl: documentImages.grant,
           insuranceUrl: documentImages.insurance,
           evpUrl: documentImages.evp,
-        }
+        };
 
         data.vehiclePhotos = {
           frontUrl: documentImages.front,
@@ -222,47 +248,65 @@ const Vehicle = () => {
           rightUrl: documentImages.right,
           interiorUrl: documentImages.interior,
           dashboardUrl: documentImages.dashboard,
-        }
+        };
       }
 
-      console.log("Signup Request Payload:", JSON.stringify(data, null, 2))
+      console.log("Signup Request Payload:", JSON.stringify(data, null, 2));
 
-      const response = await post("auth/register/rider", data)
-      console.log("Signup API Response:", JSON.stringify(response.data, null, 2))
+      const response = await post("auth/register/rider", data);
+      console.log(
+        "Signup API Response:",
+        JSON.stringify(response.data, null, 2)
+      );
 
       if (response.data.success) {
-        showSuccess(response.data.message || "Rider registered successfully. Account pending verification.")
-        navigation.navigate("Login")
+        showSuccess(
+          response.data.message ||
+            "Rider registered successfully. Account pending verification."
+        );
+        navigation.navigate("Login");
       } else {
-        throw new Error(response.data.message || "Registration failed")
+        throw new Error(response.data.message || "Registration failed");
       }
     } catch (error) {
-      console.error("Signup Error:", {
+      // Log complete error object for debugging
+      console.log("Complete Error Object:", {
+        message: error.message,
         status: error.response?.status,
         data: error.response?.data,
-        message: error.message,
-      })
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data,
+        },
+      });
 
-      let errorMessage = "Failed to complete registration"
+      let errorMessage = "Failed to complete registration";
 
       if (error.response?.data?.errors) {
-        const errors = error.response.data.errors
-        errorMessage = Object.values(errors)
-          .flat()
-          .map((err) => (typeof err === "string" ? err : err.msg || "Validation error"))
-          .join("\n")
-        setErrors(errors)
+        const errors = error.response.data.errors;
+        console.log("Raw errors object:", JSON.stringify(errors, null, 2));
+
+        errorMessage = Object.entries(errors)
+          .map(([field, messages]) => {
+            const messageList = Array.isArray(messages) ? messages : [messages];
+            return `${field}: ${messageList.join(", ")}`;
+          })
+          .join("\n");
+
+        setErrors(errors);
       } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message
+        errorMessage = error.response.data.message;
       } else if (error.message.includes("Network Error")) {
-        errorMessage = "Network error. Please check your internet connection."
+        errorMessage = "Network error. Please check your internet connection.";
       }
 
-      showError(errorMessage)
+      console.log("Final error message:", errorMessage);
+      showError(errorMessage);
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
-  }
+  };
 
   return (
     <ScrollView
@@ -270,28 +314,60 @@ const Vehicle = () => {
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
+      <StatusBar
+        backgroundColor="transparent"
+        barStyle="light-content"
+        translucent={true}
+      />
+
       <View style={styles.container}>
-        <CustomText label="Vehicle information" fontSize={26} fontWeight="800" marginTop={20} />
+        <CustomText
+          label="Vehicle information"
+          fontSize={26}
+          fontWeight="800"
+          marginTop={20}
+        />
 
         <View style={styles.checkboxContainer}>
-          <CustomCheckbox value={isChecked} onValueChange={(value) => setIsChecked(value)} />
-          <CustomText label="I am the car Owner" fontSize={15} fontWeight="500" />
+          <CustomCheckbox
+            value={isChecked}
+            onValueChange={(value) => setIsChecked(value)}
+          />
+          <CustomText
+            label="I am the car Owner"
+            fontSize={15}
+            fontWeight="500"
+          />
         </View>
 
         {isChecked && (
           <>
             <View style={styles.dropdownContainer}>
               <Dropdown
-                placeholder="Select Vehicle Type"
                 items={vehicleOptions}
-                onValueChange={(value) => updateState("vehicleType", value)}
-                value={state.vehicleType}
+                defaultValue={state.vehicleType}
+                onSelectItem={(selectedItem) => {
+                  console.log("Selected Item:", selectedItem);
+                  // Extract only the value if selectedItem is an object
+                  const value =
+                    typeof selectedItem === "object" && selectedItem.value
+                      ? selectedItem.value
+                      : selectedItem;
+                  console.log("Extracted Value:", value);
+                  updateState("vehicleType", value);
+                }}
+                placeholder="Select your Vehicle"
+                style={styles.dropdown}
+                dropDownContainerStyle={styles.dropdownList}
               />
-              {errors.vehicleType && <Text style={styles.errorText}>{errors.vehicleType}</Text>}
+              {errors.vehicleType && (
+                <Text style={styles.errorText}>{errors.vehicleType}</Text>
+              )}
             </View>
 
             <CustomInput
-              placeholder="Make (e.g., Toyota, Honda)"
+              withLabel={"Company"}
+              placeholder="Company (e.g., Toyota, Honda)"
               marginTop={20}
               value={state.vehicleNumber}
               onChangeText={(text) => updateState("vehicleNumber", text)}
@@ -299,6 +375,7 @@ const Vehicle = () => {
             />
 
             <CustomInput
+              withLabel={"Model"}
               placeholder="Model (e.g., Vellfire, Alza)"
               marginTop={20}
               value={state.vehicleModel}
@@ -308,15 +385,19 @@ const Vehicle = () => {
 
             <View style={styles.row}>
               <CustomInput
+                withLabel={"Reg. Year"}
                 placeholder="Reg. Year"
                 marginTop={20}
                 value={state.vehicleRegistrationYear}
-                onChangeText={(text) => updateState("vehicleRegistrationYear", text)}
+                onChangeText={(text) =>
+                  updateState("vehicleRegistrationYear", text)
+                }
                 width={150}
                 error={errors.vehicleRegistrationYear}
                 keyboardType="numeric"
               />
               <CustomInput
+                withLabel={"Engine CC"}
                 placeholder="Engine CC"
                 marginTop={20}
                 value={state.vehicleEngineCC}
@@ -329,6 +410,7 @@ const Vehicle = () => {
 
             <View style={styles.row}>
               <CustomInput
+                withLabel={"Plate Number"}
                 placeholder="Plate Number"
                 marginTop={20}
                 value={state.vehiclePlateNumber}
@@ -337,6 +419,7 @@ const Vehicle = () => {
                 error={errors.vehiclePlateNumber}
               />
               <CustomInput
+                withLabel={"Mileage"}
                 placeholder="Mileage"
                 marginTop={20}
                 value={state.vehicleMileage}
@@ -348,6 +431,7 @@ const Vehicle = () => {
             </View>
 
             <CustomInput
+              withLabel={"Color"}
               placeholder="Color"
               marginTop={20}
               value={state.vehicleColor}
@@ -356,20 +440,30 @@ const Vehicle = () => {
             />
 
             <CustomInput
+              withLabel={"Vehicle Registration Number"}
               placeholder="Vehicle Registration Number"
               marginTop={20}
               value={state.vehicleRegistrationNumber}
-              onChangeText={(text) => updateState("vehicleRegistrationNumber", text)}
+              onChangeText={(text) =>
+                updateState("vehicleRegistrationNumber", text)
+              }
               error={errors.vehicleRegistrationNumber}
             />
 
+            {/* card image upload */}
             <View style={styles.card}>
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Vehicle Documents</Text>
-                <DocumentUploadItem title="Grant (PDF)" type="grant" />
-                <DocumentUploadItem title="Insurance (PDF)" type="insurance" />
-                <DocumentUploadItem title="EVP Certificate" type="evp" />
+
+                <View style={styles.photoRow}>
+                  <DocumentUploadItem title="Grant (PDF)" type="grant" />
+                  <DocumentUploadItem
+                    title="Insurance (PDF)"
+                    type="insurance"
+                  />
+                </View>
               </View>
+              <DocumentUploadItem title="EVP Certificate" type="evp" />
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Vehicle Photos</Text>
@@ -377,10 +471,12 @@ const Vehicle = () => {
                   <View style={styles.photoRow}>
                     <PhotoUploadItem title="Front" type="front" />
                     <PhotoUploadItem title="Rear" type="back" />
-                    <PhotoUploadItem title="Left" type="left" />
                   </View>
                   <View style={styles.photoRow}>
+                    <PhotoUploadItem title="Left" type="left" />
                     <PhotoUploadItem title="Right" type="right" />
+                  </View>
+                  <View style={styles.photoRow}>
                     <PhotoUploadItem title="Interior" type="interior" />
                     <PhotoUploadItem title="Dashboard" type="dashboard" />
                   </View>
@@ -399,10 +495,10 @@ const Vehicle = () => {
         />
       </View>
     </ScrollView>
-  )
-}
+  );
+};
 
-export default Vehicle
+export default Vehicle;
 
 const styles = StyleSheet.create({
   scrollView: {
@@ -414,7 +510,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    padding: 20,
+    padding: 10,
   },
   checkboxContainer: {
     flexDirection: "row",
@@ -432,39 +528,34 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
-    padding: 20,
-    marginTop: 30,
+    padding: 16,
+    marginTop: 16,
+    width: "100%",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   section: {
-    flex: 1,
-    flexDirection: "column",
-    marginBottom: 25,
+    marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#333",
-    marginBottom: 15,
+    fontSize: 16,
+    fontWeight: "600",
+    paddingVertical: 12,
   },
   photoGrid: {
-    // gap: 10,
+    width: "100%",
   },
   photoRow: {
-    // flexDirection: "row",
+    flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10,
+    gap: 12,
   },
   errorText: {
     color: "red",
     fontSize: 12,
     marginTop: 5,
   },
-})
+});

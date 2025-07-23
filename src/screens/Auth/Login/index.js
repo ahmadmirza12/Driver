@@ -91,8 +91,8 @@ const Login = ({ navigation }) => {
   
       if (response.data.data.token) {
         // Store token in AsyncStorage
-        await AsyncStorage.setItem("token", response.data.data.token);
-        console.log("Token stored in AsyncStorage");
+        // await AsyncStorage.setItem("token", response.data.data.token);
+        // console.log("Token stored in AsyncStorage");
   
         // Dispatch token to Redux store
         dispatch(setToken(response.data.data.token));
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   formContainer: {
-    marginTop: 20,
+    // marginTop: 20,
   },
   forgetPasswordView: {
     alignItems: 'flex-end',

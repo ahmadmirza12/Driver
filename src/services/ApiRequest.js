@@ -1,5 +1,7 @@
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { store } from "../store";
+import { selectToken } from "../store/reducer/AuthConfig";
+
 
 const baseURL = "https://riderbackend-gbe0.onrender.com/api/";
 
@@ -12,16 +14,18 @@ const createApi = () => {
   });
 
   // Request interceptor to add token to headers
-  instance.interceptors.request.use(
-    async (config) => {
-      const token = await AsyncStorage.getItem("token"); // Make sure to use await for AsyncStorage
-      if (token) {
-        config.headers["Authorization"] = `Bearer ${token}`;
-      }
-      return config;
-    },
-    (error) => Promise.reject(error)
-  );
+ // In ApiRequest.js
+instance.interceptors.request.use(
+  (config) => {
+    const state = store.getState();
+    const token = state.authConfig?.token;
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
   // API methods
   const get = (url, params = {}) => {
