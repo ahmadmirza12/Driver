@@ -20,6 +20,7 @@ import Editowner from "../screens/Main/editowner";
 import Editspec from "../screens/Main/Editspec";
 import Editdoc from "../screens/Main/Editcoc";
 import Editphoto from "../screens/Main/Editphoto";
+import BookingDetail from "../screens/Main/bookingDetail";
 
 const Stack = createNativeStackNavigator();
 
@@ -52,7 +53,7 @@ const MainStack = () => {
       <Stack.Screen name="Editspec" component={Editspec}/>
       <Stack.Screen name="Editdoc" component={Editdoc}/>
       <Stack.Screen name="Editphoto" component={Editphoto}/>
-
+      <Stack.Screen name="BookingDetail" component={BookingDetail}/>
     </Stack.Navigator>
   );
 };

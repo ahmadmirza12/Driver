@@ -1,7 +1,5 @@
 import axios from "axios";
 import { store } from "../store";
-import { selectToken } from "../store/reducer/AuthConfig";
-
 
 const baseURL = "https://riderbackend-gbe0.onrender.com/api/";
 
@@ -14,18 +12,19 @@ const createApi = () => {
   });
 
   // Request interceptor to add token to headers
- // In ApiRequest.js
-instance.interceptors.request.use(
-  (config) => {
-    const state = store.getState();
-    const token = state.authConfig?.token;
-    if (token) {
-      config.headers["Authorization"] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+  // In ApiRequest.js
+  instance.interceptors.request.use(
+    (config) => {
+      const state = store.getState();
+      const token = state.authConfig?.token;
+      console.log(token);
+      if (token) {
+        config.headers["Authorization"] = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
 
   // API methods
   const get = (url, params = {}) => {

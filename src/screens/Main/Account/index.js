@@ -129,8 +129,8 @@ const Account = ({ navigation }) => {
         <UploadImage />
 
         <View style={styles.Name}>
-          <Text style={styles.UserNameText}>{profileData?.data.user.name || "name"}</Text>
-          <Text style={styles.EmailText}>{profileData?.data.user?.email || "email"}</Text>
+          <Text style={styles.UserNameText}>{profileData?.data.user.name || ""}</Text>
+          <Text style={styles.EmailText}>{profileData?.data.user?.email || ""}</Text>
         </View>
 
         <View style={styles.Card}>

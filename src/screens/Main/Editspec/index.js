@@ -15,6 +15,7 @@ import {
   import { useState } from "react";
   import axios from "axios";
   import { put } from "../../../services/ApiRequest";
+  import { showSuccess, showError } from "../../../utils/toast";
   import CustomText from "../../../components/CustomText";
   
   const Editspec = () => {
@@ -46,38 +47,9 @@ import {
     });
   
     // Success and error handlers
-    const showSuccess = (message) => {
-      Alert.alert("Success", message);
-    };
-  
-    const showError = (message) => {
-      Alert.alert("Error", message);
-    };
-  
-    // Validation function for years
-    const validateYear = (year) => {
-      const currentYear = new Date().getFullYear();
-      const numYear = parseInt(year);
-  
-      if (isNaN(numYear) || numYear < 1990 || numYear > currentYear) {
-        return null; // Return null for invalid years
-      }
-      return numYear;
-    };
+    
   
     const editspec = async () => {
-      // Validate years before sending
-      const manufacturingYear = validateYear(state.vehicleRegistrationYear);
-      const registrationYear = validateYear(state.vehicleRegistrationYear);
-  
-      if (state.vehicleRegistrationYear && !manufacturingYear) {
-        showError(
-          `Manufacturing year must be between 1990 and ${new Date().getFullYear()}`
-        );
-        setLoading(false);
-        return;
-      }
-  
       setLoading(true);
   
       // Extract only the value from category if it's an object
@@ -92,9 +64,9 @@ import {
             `${state.vehicleNumber} ${state.vehicleModel}`.trim() || "Vehicle",
           category: categoryValue,
           model: state.vehicleModel || "",
-          manufacturingYear: manufacturingYear || 0,
+          manufacturingYear: state.vehicleRegistrationYear || 0,
           make: state.vehicleNumber || "",
-          registrationYear: registrationYear || 0,
+          registrationYear: state.vehicleRegistrationYear || 0,
           engineCapacity: state.vehicleEngineCC || "",
           color: state.vehicleColor || "",
           plateNumber: state.vehiclePlateNumber || "",
@@ -146,9 +118,7 @@ import {
       }
     };
   
-    // Handle year input with validation
     const handleYearInput = (text) => {
-      // Only allow numbers and limit to 4 digits
       const numericText = text.replace(/[^0-9]/g, "").slice(0, 4);
       updateState("vehicleRegistrationYear", numericText);
     };
@@ -185,7 +155,6 @@ import {
                 defaultValue={state.vehicleType}
                 onSelectItem={(selectedItem) => {
                   console.log("Selected Item:", selectedItem);
-                  // Extract only the value if selectedItem is an object
                   const value =
                     typeof selectedItem === "object" && selectedItem.value
                       ? selectedItem.value

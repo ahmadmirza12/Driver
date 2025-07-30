@@ -7,6 +7,7 @@ import { useNavigation } from "expo-router";
 import UploadImageUI from "../../../components/UploadImageUI";
 import { put } from "../../../services/ApiRequest";
 import CustomButton from "../../../components/CustomButton";
+import { showError, showSuccess } from "../../../utils/toast";
 
 const Editphoto = () => {
   const navigation = useNavigation();
@@ -44,10 +45,12 @@ const Editphoto = () => {
       setLoading(true);
       const response = await put("rider/vehicle/photos", data);
       console.log(response.data);
+       showSuccess("Vehicle photos updated successfully");
 
       navigation.goBack();
     } catch (error) {
       console.error("Error updating documents:", error);
+      showError("Failed to update vehicle photos");
     } finally {
       setLoading(false);
     }

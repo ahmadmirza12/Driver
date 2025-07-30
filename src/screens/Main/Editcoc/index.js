@@ -1,5 +1,4 @@
 "use client";
-
 import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { useState } from "react";
 import { AntDesign } from "@expo/vector-icons";
@@ -7,6 +6,7 @@ import { TouchableOpacity } from "react-native";
 import { useNavigation } from "expo-router";
 import UploadImageUI from "../../../components/UploadImageUI";
 import { put } from "../../../services/ApiRequest";
+import { showError, showSuccess } from "../../../utils/toast";
 
 const Editdoc = () => {
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,6 @@ const Editdoc = () => {
   });
 
   const navigation = useNavigation();
-
   const handleDocumentUpload = (type) => (url) => {
     console.log(`${type} uploaded:`, url);
     setDocuments((prev) => ({
@@ -39,11 +38,12 @@ const Editdoc = () => {
       setLoading(true);
       const response = await put("rider/vehicle/documents", data);
       console.log(response.data);
+       showSuccess("Vehicle documents updated successfully");
       // Handle success - maybe show a success message or navigate back
       navigation.goBack();
     } catch (error) {
       console.error("Error updating documents:", error);
-      // Handle error - show error message to user
+      showError("Failed to update vehicle documents");
     } finally {
       setLoading(false);
     }

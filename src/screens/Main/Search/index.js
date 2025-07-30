@@ -1,5 +1,5 @@
-import { AntDesign, FontAwesome6 } from '@expo/vector-icons';
-import { useState } from 'react';
+import { AntDesign, FontAwesome6 } from "@expo/vector-icons";
+import { useState, useEffect } from "react";
 import {
   ScrollView,
   StatusBar,
@@ -7,16 +7,35 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
+} from "react-native";
+import { get } from "../../../services/ApiRequest";
 
 export default function Jobs({ navigation }) {
-  const [selectedTab, setSelectedTab] = useState('All');
+  const [selectedTab, setSelectedTab] = useState("All");
+  const tabs = ["All", "Active", "Completed", "Cancel"];
 
-  const tabs = ['All', 'Active', 'Completed', 'Cancel'];
+  const [loading, setLoading] = useState(false);
+  const [jobs, setJobs] = useState([]);
+
+  const getJobs = async () => {
+    try {
+      setLoading(true);
+      const response = await get("bookings/rider/my-bookings");
+      console.log(response.data);
+      setJobs(response.data);
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getJobs();
+  }, []);
 
   const JobCard = ({ status, color }) => (
     <View style={styles.card}>
-      {/* Left side (Details) */}
       <View style={styles.cardLeft}>
         <View style={styles.pointBlock}>
           <FontAwesome6 name="location-dot" size={20} color="#1F5546" />
@@ -40,10 +59,11 @@ export default function Jobs({ navigation }) {
         <Text style={styles.infoText}>Time: 10 min</Text>
       </View>
 
-      {/* Right side (Price & Status) */}
       <View style={styles.cardRight}>
         <Text style={styles.price}>$20</Text>
-        <TouchableOpacity style={[styles.statusBtn, { backgroundColor: color }]}>
+        <TouchableOpacity
+          style={[styles.statusBtn, { backgroundColor: color }]}
+        >
           <Text style={styles.statusBtnText}>{status}</Text>
         </TouchableOpacity>
       </View>
@@ -54,28 +74,27 @@ export default function Jobs({ navigation }) {
     let cards = [];
 
     switch (selectedTab) {
-      case 'All':
+      case "All":
         cards = [
-          { status: 'Completed', color: '#1F5546' },
-          { status: 'Active', color: '#F1C40F' },
-          { status: 'Cancel', color: '#E74C3C' },
+          { status: "Completed", color: "#1F5546" },
+          { status: "Active", color: "#F1C40F" },
+          { status: "Cancel", color: "#E74C3C" },
         ];
         break;
-      case 'Active':
-        cards = [{ status: 'Active', color: '#F1C40F' }];
+      case "Active":
+        cards = [{ status: "Active", color: "#F1C40F" }];
         break;
-      case 'Completed':
+      case "Completed":
         cards = [
-          { status: 'Completed', color: '#1F5546' },
-          { status: 'Completed', color: '#1F5546' },
-          { status: 'Completed', color: '#1F5546' },
-          
+          { status: "Completed", color: "#1F5546" },
+          { status: "Completed", color: "#1F5546" },
+          { status: "Completed", color: "#1F5546" },
         ];
         break;
-      case 'Cancel':
+      case "Cancel":
         cards = [
-          { status: 'Cancel', color: '#E74C3C' },
-          { status: 'Cancel', color: '#E74C3C' },
+          { status: "Cancel", color: "#E74C3C" },
+          { status: "Cancel", color: "#E74C3C" },
         ];
         break;
       default:
@@ -83,7 +102,10 @@ export default function Jobs({ navigation }) {
     }
 
     return (
-      <ScrollView contentContainerStyle={styles.cardWrapper} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.cardWrapper}
+        showsVerticalScrollIndicator={false}
+      >
         {cards.map((card, index) => (
           <JobCard key={index} status={card.status} color={card.color} />
         ))}
@@ -95,7 +117,6 @@ export default function Jobs({ navigation }) {
     <View style={styles.container}>
       <StatusBar backgroundColor="#1F5546" barStyle="light-content" />
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation?.goBack?.()}>
           <AntDesign name="left" size={20} color="white" />
@@ -104,7 +125,6 @@ export default function Jobs({ navigation }) {
         <AntDesign name="left" size={20} color="transparent" />
       </View>
 
-      {/* Tabs */}
       <View style={styles.tabsContainer}>
         {tabs.map((tab) => (
           <TouchableOpacity
@@ -127,7 +147,6 @@ export default function Jobs({ navigation }) {
         ))}
       </View>
 
-      {/* Tab content */}
       <View style={styles.contentContainer}>{renderTabContent()}</View>
     </View>
   );
@@ -136,45 +155,45 @@ export default function Jobs({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E8F6F2',
+    backgroundColor: "#E8F6F2",
   },
   header: {
-    backgroundColor: '#1F5546',
+    backgroundColor: "#1F5546",
     height: 114,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingTop: 50,
     paddingHorizontal: 20,
   },
   headerText: {
-    color: 'white',
+    color: "white",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   tabsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: 20,
     paddingHorizontal: 10,
   },
   tabButton: {
     borderWidth: 1,
-    borderColor: '#A7A7A7',
+    borderColor: "#A7A7A7",
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 20,
     marginHorizontal: 4,
   },
   tabButtonActive: {
-    backgroundColor: '#1F5546',
+    backgroundColor: "#1F5546",
   },
   tabText: {
-    color: '#A7A7A7',
-    fontWeight: '500',
+    color: "#A7A7A7",
+    fontWeight: "500",
     fontSize: 16,
   },
   tabTextActive: {
-    color: 'white',
+    color: "white",
   },
   contentContainer: {
     flex: 1,
@@ -183,62 +202,62 @@ const styles = StyleSheet.create({
   },
   tabContentText: {
     fontSize: 16,
-    color: '#26433D',
-    textAlign: 'center',
+    color: "#26433D",
+    textAlign: "center",
   },
 
   // Cards
   cardWrapper: {
     paddingBottom: 20,
-    alignItems: 'center',
+    alignItems: "center",
     gap: 15,
   },
   card: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     width: 344,
     borderRadius: 10,
     padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   cardLeft: {
     flex: 1,
   },
   pointBlock: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   pointLabel: {
     fontSize: 10,
-    color: '#999999',
+    color: "#999999",
   },
   pointAddress: {
     fontSize: 13,
-    color: '#000',
-    fontWeight: '500',
+    color: "#000",
+    fontWeight: "500",
   },
   dottedLine: {
     borderLeftWidth: 1,
-    borderLeftColor: '#ccc',
-    borderStyle: 'dotted',
+    borderLeftColor: "#ccc",
+    borderStyle: "dotted",
     height: 8,
     marginLeft: 8,
     marginVertical: 4,
   },
   infoText: {
     fontSize: 12,
-    color: '#000',
+    color: "#000",
     marginTop: 2,
   },
   cardRight: {
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    alignItems: "flex-end",
+    justifyContent: "space-between",
   },
   price: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1F5546',
+    fontWeight: "600",
+    color: "#1F5546",
   },
   statusBtn: {
     paddingHorizontal: 10,
@@ -246,12 +265,12 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     height: 27,
     width: 81,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   statusBtnText: {
-    color: 'white',
+    color: "white",
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });
