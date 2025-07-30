@@ -12,17 +12,17 @@ import { get } from "../../../services/ApiRequest";
 
 export default function Jobs({ navigation }) {
   const [selectedTab, setSelectedTab] = useState("All");
-  const tabs = ["All", "Active", "Completed", "Cancel"];
-
+  const tabs = ["All", "Assigned", "Accepted", "Rejected", "In-Progress", "Completed"];
   const [loading, setLoading] = useState(false);
   const [jobs, setJobs] = useState([]);
 
-  const getJobs = async () => {
+  const getJobs = async (status = "") => {
     try {
       setLoading(true);
-      const response = await get("bookings/rider/my-bookings");
-      console.log(response.data);
-      setJobs(response.data);
+      const query = status && status !== "All" ? `?status=${status.toLowerCase()}` : "";
+      const response = await get(`bookings/rider/my-bookings${query}`);
+      console.log("=====>", response.data);
+      setJobs(response.data.data.bookings || []);
     } catch (error) {
       console.error("Error fetching jobs:", error);
     } finally {
@@ -31,74 +31,81 @@ export default function Jobs({ navigation }) {
   };
 
   useEffect(() => {
-    getJobs();
-  }, []);
+    getJobs(selectedTab);
+  }, [selectedTab]);
 
-  const JobCard = ({ status, color }) => (
-    <View style={styles.card}>
-      <View style={styles.cardLeft}>
-        <View style={styles.pointBlock}>
-          <FontAwesome6 name="location-dot" size={20} color="#1F5546" />
-          <View style={{ marginLeft: 5 }}>
-            <Text style={styles.pointLabel}>Pickup</Text>
-            <Text style={styles.pointAddress}>123 main st</Text>
+  const JobCard = ({ job }) => {
+    const getStatusColor = (status) => {
+      switch (status) {
+        case "completed":
+          return "#1F5546";
+        case "accepted":
+        case "in-progress":
+          return "#F1C40F";
+        case "rejected":
+          return "#E74C3C";
+        case "assigned":
+          return "#3498DB";
+        default:
+          return "#A7A7A7";
+      }
+    };
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardLeft}>
+          <View style={styles.pointBlock}>
+            <FontAwesome6 name="location-dot" size={20} color="#1F5546" />
+            <View style={{ marginLeft: 5 }}>
+              <Text style={styles.pointLabel}>Pickup</Text>
+              <Text style={styles.pointAddress}>{job.pickupLocation}</Text>
+            </View>
           </View>
+
+          <View style={styles.dottedLine} />
+
+          <View style={styles.pointBlock}>
+            <FontAwesome6 name="location-dot" size={20} color="#1F5546" />
+            <View style={{ marginLeft: 5 }}>
+              <Text style={styles.pointLabel}>Drop Off</Text>
+              <Text style={styles.pointAddress}>{job.dropoffLocation}</Text>
+            </View>
+          </View>
+
+          <Text style={styles.infoText}>Distance: N/A</Text>
+          <Text style={styles.infoText}>
+            Time: {new Date(job.pickupDateTime).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
         </View>
 
-        <View style={styles.dottedLine} />
-
-        <View style={styles.pointBlock}>
-          <FontAwesome6 name="location-dot" size={20} color="#1F5546" />
-          <View style={{ marginLeft: 5 }}>
-            <Text style={styles.pointLabel}>Drop Off</Text>
-            <Text style={styles.pointAddress}>123 main st</Text>
-          </View>
+        <View style={styles.cardRight}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          >
+          <Text style={styles.price}>${job.estimatedPrice}</Text>
+          <TouchableOpacity
+            style={[styles.statusBtn, { backgroundColor: getStatusColor(job.status) }]}
+          >
+            <Text style={styles.statusBtnText}>{job.status}</Text>
+          </TouchableOpacity>
+          </ScrollView>
         </View>
 
-        <Text style={styles.infoText}>Distance: 2.5 km</Text>
-        <Text style={styles.infoText}>Time: 10 min</Text>
       </View>
-
-      <View style={styles.cardRight}>
-        <Text style={styles.price}>$20</Text>
-        <TouchableOpacity
-          style={[styles.statusBtn, { backgroundColor: color }]}
-        >
-          <Text style={styles.statusBtnText}>{status}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+    );
+  };
 
   const renderTabContent = () => {
-    let cards = [];
+    if (loading) {
+      return <Text style={styles.tabContentText}>Loading...</Text>;
+    }
 
-    switch (selectedTab) {
-      case "All":
-        cards = [
-          { status: "Completed", color: "#1F5546" },
-          { status: "Active", color: "#F1C40F" },
-          { status: "Cancel", color: "#E74C3C" },
-        ];
-        break;
-      case "Active":
-        cards = [{ status: "Active", color: "#F1C40F" }];
-        break;
-      case "Completed":
-        cards = [
-          { status: "Completed", color: "#1F5546" },
-          { status: "Completed", color: "#1F5546" },
-          { status: "Completed", color: "#1F5546" },
-        ];
-        break;
-      case "Cancel":
-        cards = [
-          { status: "Cancel", color: "#E74C3C" },
-          { status: "Cancel", color: "#E74C3C" },
-        ];
-        break;
-      default:
-        return <Text style={styles.tabContentText}>Unknown Tab</Text>;
+    if (jobs.length === 0) {
+      return <Text style={styles.tabContentText}>No jobs found</Text>;
     }
 
     return (
@@ -106,8 +113,8 @@ export default function Jobs({ navigation }) {
         contentContainerStyle={styles.cardWrapper}
         showsVerticalScrollIndicator={false}
       >
-        {cards.map((card, index) => (
-          <JobCard key={index} status={card.status} color={card.color} />
+        {jobs.map((job) => (
+          <JobCard key={job._id} job={job} />
         ))}
       </ScrollView>
     );
@@ -205,8 +212,6 @@ const styles = StyleSheet.create({
     color: "#26433D",
     textAlign: "center",
   },
-
-  // Cards
   cardWrapper: {
     paddingBottom: 20,
     alignItems: "center",

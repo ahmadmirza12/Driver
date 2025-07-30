@@ -27,7 +27,6 @@ export default function Home() {
       console.error("Error fetching jobs:", error);
     }
   };
-
   useEffect(() => {
     getbooking();
   }, []);
