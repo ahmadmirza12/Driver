@@ -13,11 +13,12 @@ import { get, put } from "../../../services/ApiRequest";
 import { useEffect, useState } from "react";
 import { useNavigation } from "expo-router";
 import MapView, { Marker } from "react-native-maps";
-import * as Location from 'expo-location';
-import { Alert } from 'react-native';
+import * as Location from "expo-location";
+import { useSelector } from "react-redux";
 
 export default function Home() {
-  const [data, setData] = useState([]);
+  const userData = useSelector((state) => state.users.userData);
+  const [data, setData] = useState([]); 
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [region, setRegion] = useState({
@@ -28,32 +29,41 @@ export default function Home() {
   });
   const navigation = useNavigation();
 
-  useEffect(() => {
-    (async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          setErrorMsg('Permission to access location was denied');
-          return;
-        }
+  const startride = async (booking) => {
+    try {
+      const response = await put(`bookings/rider/${booking._id}/start`);
+      console.log("response of start", response.data);
+    } catch (error) {
+      console.error("Error getting start ride:", error);
+    }
+  };
 
-        let location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High
-        });
-        
-        setLocation(location);
-        setRegion({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          latitudeDelta: 0.005,
-          longitudeDelta: 0.005,
-        });
-      } catch (error) {
-        console.error('Error getting location:', error);
-        setErrorMsg('Error getting location');
-      }
-    })();
-  }, []);
+  // useEffect(() => {
+  //   (async () => {
+  //     try {
+  //       let { status } = await Location.requestForegroundPermissionsAsync();
+  //       if (status !== "granted") {
+  //         setErrorMsg("Permission to access location was denied");
+  //         return;
+  //       }
+
+  //       let location = await Location.getCurrentPositionAsync({
+  //         accuracy: Location.Accuracy.High,
+  //       });
+
+  //       setLocation(location);
+  //       setRegion({
+  //         latitude: location.coords.latitude,
+  //         longitude: location.coords.longitude,
+  //         latitudeDelta: 0.005,
+  //         longitudeDelta: 0.005,
+  //       });
+  //     } catch (error) {
+  //       console.error("Error getting location:", error);
+  //       setErrorMsg("Error getting location");
+  //     }
+  //   })();
+  // }, []);
 
   const getbooking = async () => {
     try {
@@ -68,9 +78,10 @@ export default function Home() {
     getbooking();
   }, []);
 
+
   const handleaccept = async (booking) => {
     try {
-      console.log("Accepting booking ID:", booking._id); // Added console log for booking ID
+      console.log("Accepting booking ID:", booking._id);
       const response = await put(`bookings/rider/${booking._id}/accept`);
       console.log(response.data);
       getbooking();
@@ -81,7 +92,7 @@ export default function Home() {
 
   const handleDecline = async (booking) => {
     try {
-      console.log("Declining booking ID:", booking._id); // Added console log for booking ID
+      console.log("Declining booking ID:", booking._id);
       const response = await put(`bookings/rider/${booking._id}/reject`, {
         rejectionReason: "Vehicle not available at that time",
       });
@@ -116,7 +127,9 @@ export default function Home() {
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
-                    {item.pickupLocation || "Location not specified"}
+                    {(item.pickupLocation?.length > 26
+                      ? `${item.pickupLocation.substring(0, 26)}...`
+                      : item.pickupLocation) || "Location not specified"}
                   </Text>
                 </View>
               </View>
@@ -130,7 +143,9 @@ export default function Home() {
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
-                    {item.dropoffLocation || "Location not specified"}
+                    {(item.dropoffLocation?.length > 26
+                      ? `${item.dropoffLocation.substring(0, 26)}...`
+                      : item.dropoffLocation) || "Location not specified"}
                   </Text>
                 </View>
               </View>
@@ -173,12 +188,13 @@ export default function Home() {
         <TouchableOpacity style={styles.profileSection}>
           <Image
             source={require("../../../assets/images/Roger.png")}
+            
             style={styles.avatar}
           />
           <View style={{ marginLeft: 10 }}>
-            <Text style={styles.name}>John Doe</Text>
+            <Text style={styles.name}>{userData?.data?.user?.name}</Text>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={styles.address}>18th Avenue</Text>
+              <Text style={styles.address}>{userData?.data?.user?.email}</Text>
               <AntDesign
                 name="down"
                 size={14}
@@ -203,7 +219,8 @@ export default function Home() {
           followsUserLocation={true}
           showsMyLocationButton={true}
           zoomEnabled={true}
-          zoomControlEnabled={true}
+
+          userLocationPriority="high"
         >
           {location && (
             <Marker
@@ -230,7 +247,6 @@ export default function Home() {
         </TouchableOpacity>
       </View>
       <View style={styles.cardOverlay}>
-        <Text style={styles.upcomingTitle}>Upcoming Request</Text>
         <FlatList
           data={data}
           renderItem={renderRideItem}
@@ -324,14 +340,14 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#E8F6F2",
-    paddingTop: 15,
-    paddingBottom: 20,
     paddingHorizontal: 10,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    elevation: 10,
-    zIndex: 2,
+    paddingBottom: 20,
+    // backgroundColor: "#E8F6F2",
+    // paddingTop: 15,
+    // borderTopLeftRadius: 20,
+    // borderTopRightRadius: 20,
+    // elevation: 10,
+    // zIndex: 2,
   },
   upcomingTitle: {
     fontSize: 16,

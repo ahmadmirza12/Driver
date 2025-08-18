@@ -13,23 +13,20 @@ import { AntDesign } from "@expo/vector-icons";
 import { ScrollView } from "react-native";
 import { PNGIcons } from "../../../assets/images/icons";
 import UploadImage from "../../../components/UploadImage";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { get } from "../../../services/ApiRequest";
 import { useDispatch } from "react-redux";
 import { logout } from "../../../store/reducer/AuthConfig";
+import { setUserData } from "../../../store/reducer/usersSlice";
 
 
 const Account = ({ navigation }) => {
   const dispatch = useDispatch();
   const [profileData, setProfileData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  // console.log("profileData========================", profileData);
 
-  // console.log(token);
+  const [loading, setLoading] = useState(false);
 
   const handleLogout = async () => {
     try {
-      // await AsyncStorage.removeItem('token');
       dispatch(logout());
       navigation.reset({
         index: 0,
@@ -46,6 +43,7 @@ const Account = ({ navigation }) => {
       const response = await get("auth/profile");
       // console.log("Profile API Response:", response.data);
       setProfileData(response.data);
+      dispatch(setUserData(response.data)); 
     } catch (error) {
       console.error("Profile Error:", error);
     }
@@ -60,7 +58,7 @@ const Account = ({ navigation }) => {
       icon: PNGIcons.Edit,
       title: "Edit Profile",
       onPress: () =>
-        navigation.navigate("Editowner", { profileData: profileData }),
+        navigation.navigate("Editowner"),
     },
     {
       icon: PNGIcons.Earning,

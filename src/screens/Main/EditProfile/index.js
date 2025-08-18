@@ -14,23 +14,23 @@ import CustomButton from "../../../components/CustomButton";
 import CustomInput from "../../../components/CustomInput";
 import CustomText from "../../../components/CustomText";
 import UploadImageUI from "../../../components/UploadImageUI";
-import { useRoute } from "@react-navigation/native";
+import { useSelector } from "react-redux";
 import { put } from "../../../services/ApiRequest";
 import { showError, showSuccess } from "../../../utils/toast";
 import Dropdown from "../../../components/Dropdown";
 
 const EditProfile = ({ navigation }) => {
-  const route = useRoute();
-  const { profileData } = route.params || {};
+  // Get user data from Redux store
+  const userData = useSelector((state) => state.users.userData);
 
   // Initialize form state with profile data
   const [states, setStates] = useState({
-    firstName: profileData?.data?.user?.name?.split(" ")[0] || "",
-    lastName: profileData?.data?.user?.name?.split(" ")[1] || "",
-    age: profileData?.data?.user?.age || "",
-    email: profileData?.data?.user?.email || "",
+    firstName: userData?.data?.user?.name?.split(" ")[0] || "",
+    lastName: userData?.data?.user?.name?.split(" ")[1] || "",
+    age: userData?.data?.user?.age || "",
+    email: userData?.data?.user?.email || "",
     password: "",
-    phoneNumber: profileData?.data?.user?.phone || "",
+    phoneNumber: userData?.data?.user?.phone || "",
     selectedCity: [], // Initialize as empty array for multiple selection
     selectedBank: "",
     accountNumber: "",

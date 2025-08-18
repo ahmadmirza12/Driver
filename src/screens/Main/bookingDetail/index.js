@@ -1,16 +1,33 @@
 import { AntDesign, MaterialIcons } from "@expo/vector-icons";
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
-import React from "react";
+import React, { useState } from "react";
+import CustomButton from "../../../components/CustomButton";
+import { put } from "../../../services/ApiRequest";
+import { useNavigation } from "expo-router";
 
-const BookingDetail = ({ route, navigation }) => {
-  const { item } = route.params; // Get booking data from navigation params
-
+const BookingDetail = ({ route }) => {
+  const [loading, setloading] = useState(false);
+  const { item } = route.params;
+  const navigation = useNavigation();
   // Format date and time
   const pickupDate = new Date(item.pickupDateTime).toLocaleDateString();
   const pickupTime = new Date(item.pickupDateTime).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  const startride = async (item) => {
+    setloading(true);
+    try {
+      const response = await put(`bookings/rider/${item._id}/start`);
+      console.log("response of start", response.data);
+      navigation.goBack();
+    } catch (error) {
+      console.error("Error getting start ride:", error);
+    } finally {
+      setloading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -57,10 +74,10 @@ const BookingDetail = ({ route, navigation }) => {
         </View>
         <View style={styles.detailSection}>
           <Text style={styles.sectionTitle}>Booking Information</Text>
-          <View style={styles.detailRow}>
+          {/* <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Booking ID:</Text>
             <Text style={styles.detailValue}>{item._id}</Text>
-          </View>
+          </View> */}
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Service Type:</Text>
             <Text style={styles.detailValue}>{item.serviceType}</Text>
@@ -117,23 +134,16 @@ const BookingDetail = ({ route, navigation }) => {
             <Text style={styles.detailValue}>{item.customerId.phone}</Text>
           </View>
         </View>
-        <View style={styles.detailSection}>
-          <Text style={styles.sectionTitle}>Assignment Details</Text>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Assigned By:</Text>
-            <Text style={styles.detailValue}>{item.assignedBy.name}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Assigned At:</Text>
-            <Text style={styles.detailValue}>
-              {new Date(item.assignedAt).toLocaleString()}
-            </Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Rider Response:</Text>
-            <Text style={styles.detailValue}>{item.riderResponse}</Text>
-          </View>
-        </View>
+      </View>
+      <View style={styles.horizantal}>
+        <CustomButton
+          title={loading ? "Sarting..." : "Start Ride"}
+          fontSize={16}
+          fontWeight="400"
+          marginTop={30}
+          onPress={startride}
+          backgroundColor="#1F5546"
+        />
       </View>
     </View>
   );
@@ -235,5 +245,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#4D4D4D",
     flex: 1,
+  },
+  horizantal: {
+    paddingHorizontal: 20,
   },
 });
