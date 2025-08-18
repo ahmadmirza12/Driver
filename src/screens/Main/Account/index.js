@@ -15,15 +15,16 @@ import { PNGIcons } from "../../../assets/images/icons";
 import UploadImage from "../../../components/UploadImage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { get } from "../../../services/ApiRequest";
-import { useDispatch } from 'react-redux';
-import { logout } from '../../../store/reducer/AuthConfig';
+import { useDispatch } from "react-redux";
+import { logout } from "../../../store/reducer/AuthConfig";
+
 
 const Account = ({ navigation }) => {
   const dispatch = useDispatch();
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(false);
-  console.log("profileData========================",profileData)
- 
+  // console.log("profileData========================", profileData);
+
   // console.log(token);
 
   const handleLogout = async () => {
@@ -32,11 +33,11 @@ const Account = ({ navigation }) => {
       dispatch(logout());
       navigation.reset({
         index: 0,
-        routes: [{ name: 'AuthStack', params: { screen: 'Login' } }],
+        routes: [{ name: "AuthStack", params: { screen: "Login" } }],
       });
     } catch (error) {
-      console.error('Error logging out:', error);
-      Alert.alert('Error', 'Failed to logout. Please try again.');
+      console.error("Error logging out:", error);
+      Alert.alert("Error", "Failed to logout. Please try again.");
     }
   };
 
@@ -44,7 +45,7 @@ const Account = ({ navigation }) => {
     try {
       const response = await get("auth/profile");
       // console.log("Profile API Response:", response.data);
-      setProfileData(response.data)
+      setProfileData(response.data);
     } catch (error) {
       console.error("Profile Error:", error);
     }
@@ -58,13 +59,13 @@ const Account = ({ navigation }) => {
     {
       icon: PNGIcons.Edit,
       title: "Edit Profile",
-      onPress: () => navigation.navigate("Editowner",{profileData:profileData}),
+      onPress: () =>
+        navigation.navigate("Editowner", { profileData: profileData }),
     },
     {
       icon: PNGIcons.Earning,
       title: "Earnings",
-      // onPress: () => navigation.navigate("Earning"),
-      onPress: () => navigation.navigate("Editphoto"),
+      onPress: () => navigation.navigate("Earning"),
     },
     {
       icon: PNGIcons.Payment,
@@ -85,26 +86,21 @@ const Account = ({ navigation }) => {
       icon: PNGIcons.Payment,
       title: "Privacy Policy",
       onPress: () => navigation.navigate("Privacy"),
-
     },
     {
       icon: PNGIcons.IconLogout,
       title: "Logout",
       onPress: () => {
-        Alert.alert(
-          "Logout",
-          "Are you sure you want to logout?",
-          [
-            {
-              text: "Cancel",
-              style: "cancel"
-            },
-            { 
-              text: "Logout", 
-              onPress: () => handleLogout() 
-            }
-          ]
-        );
+        Alert.alert("Logout", "Are you sure you want to logout?", [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Logout",
+            onPress: () => handleLogout(),
+          },
+        ]);
       },
       hideArrow: true,
     },
@@ -113,13 +109,13 @@ const Account = ({ navigation }) => {
   return (
     <View style={{ flex: 1, backgroundColor: "#E8F6F2" }}>
       <StatusBar
-             backgroundColor="transparent"
-             barStyle="light-content"
-             translucent={true}
-           />
+        backgroundColor="transparent"
+        barStyle="light-content"
+        translucent={true}
+      />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={()=>navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <AntDesign name="left" size={20} color="white" />
         </TouchableOpacity>
         <Text style={styles.EarningText}>Account</Text>
@@ -129,8 +125,12 @@ const Account = ({ navigation }) => {
         <UploadImage />
 
         <View style={styles.Name}>
-          <Text style={styles.UserNameText}>{profileData?.data.user.name || ""}</Text>
-          <Text style={styles.EmailText}>{profileData?.data.user?.email || ""}</Text>
+          <Text style={styles.UserNameText}>
+            {profileData?.data.user.name || ""}
+          </Text>
+          <Text style={styles.EmailText}>
+            {profileData?.data.user?.email || ""}
+          </Text>
         </View>
 
         <View style={styles.Card}>

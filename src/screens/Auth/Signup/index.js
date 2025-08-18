@@ -145,6 +145,9 @@ const Signup = ({ navigation }) => {
       if (!state.password.trim()) {
         newErrors.password = "Password is required";
         hasErrors = true;
+      } else if (!/^[a-zA-Z0-9]+$/.test(state.password.trim())) {
+        newErrors.password = "Password must contain only letters and numbers";
+        hasErrors = true;
       } else if (state.password.trim().length < 6) {
         newErrors.password = "Password must be at least 6 characters";
         hasErrors = true;

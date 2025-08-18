@@ -9,9 +9,11 @@ import {
 } from "react-native";
 import CustomText from "../../../components/CustomText";
 import CustomToggle from "../../../components/CustomToggle";
+import { useDispatch } from "react-redux";
 
 export default function AppSetting() {
-  const navigation=useNavigation();
+  const navigation = useNavigation();
+  const dispatch = useDispatch();
   return (
     <View style={styles.container}>
       <StatusBar

@@ -380,7 +380,7 @@ const Vehicle = () => {
               <CustomInput
                 withLabel={"Company"}
                 placeholder="Company (e.g., Toyota, Honda)"
-                marginTop={20}
+                marginTop={10}
                 value={state.vehicleNumber}
                 onChangeText={(text) => updateState("vehicleNumber", text)}
                 error={errors.vehicleNumber}
@@ -389,7 +389,7 @@ const Vehicle = () => {
               <CustomInput
                 withLabel={"Model"}
                 placeholder="Model (e.g., Vellfire, Alza)"
-                marginTop={20}
+                marginTop={10}
                 value={state.vehicleModel}
                 onChangeText={(text) => updateState("vehicleModel", text)}
                 error={errors.vehicleModel}
@@ -399,7 +399,7 @@ const Vehicle = () => {
                 <CustomInput
                   withLabel={"Reg. Year"}
                   placeholder="Reg. Year"
-                  marginTop={20}
+                  marginTop={10}
                   value={state.vehicleRegistrationYear}
                   onChangeText={(text) =>
                     updateState("vehicleRegistrationYear", text)
@@ -411,7 +411,7 @@ const Vehicle = () => {
                 <CustomInput
                   withLabel={"Engine CC"}
                   placeholder="Engine CC"
-                  marginTop={20}
+                  marginTop={10}
                   value={state.vehicleEngineCC}
                   onChangeText={(text) => updateState("vehicleEngineCC", text)}
                   width={150}
@@ -424,7 +424,7 @@ const Vehicle = () => {
                 <CustomInput
                   withLabel={"Plate Number"}
                   placeholder="Plate Number"
-                  marginTop={20}
+                  marginTop={10}
                   value={state.vehiclePlateNumber}
                   onChangeText={(text) =>
                     updateState("vehiclePlateNumber", text)
@@ -435,7 +435,7 @@ const Vehicle = () => {
                 <CustomInput
                   withLabel={"Mileage"}
                   placeholder="Mileage"
-                  marginTop={20}
+                  marginTop={10}
                   value={state.vehicleMileage}
                   onChangeText={(text) => updateState("vehicleMileage", text)}
                   width={150}
@@ -447,7 +447,7 @@ const Vehicle = () => {
               <CustomInput
                 withLabel={"Color"}
                 placeholder="Color"
-                marginTop={20}
+                marginTop={10}
                 value={state.vehicleColor}
                 onChangeText={(text) => updateState("vehicleColor", text)}
                 error={errors.vehicleColor}
@@ -456,7 +456,7 @@ const Vehicle = () => {
               <CustomInput
                 withLabel={"Vehicle Registration Number"}
                 placeholder="Vehicle Registration Number"
-                marginTop={20}
+                marginTop={10}
                 value={state.vehicleRegistrationNumber}
                 onChangeText={(text) =>
                   updateState("vehicleRegistrationNumber", text)
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     width: 40, // Same as back button for balance
   },
   content: {
-    padding: 20,
+    paddingHorizontal: 10,
     paddingTop: 10,
   },
   scrollView: {

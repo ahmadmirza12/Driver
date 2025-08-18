@@ -219,6 +219,8 @@ const Login = ({ navigation }) => {
 
           <View style={styles.bottomText}>
             <DualText
+              marginTop={100}
+              marginBottom={20}
               title="Don't have an account?"
               secondTitle="Create New"
               onPress={() => navigation.navigate("Signup")}
@@ -250,7 +252,7 @@ const styles = StyleSheet.create({
   },
   bottomText: {
     alignItems: "center",
-    justifyContent: "flex-end",
+    // justifyContent: "flex-end",
   },
   socialLoginContainer: {
     marginVertical: 20,

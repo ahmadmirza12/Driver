@@ -12,11 +12,48 @@ import {
 import { get, put } from "../../../services/ApiRequest";
 import { useEffect, useState } from "react";
 import { useNavigation } from "expo-router";
-// import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker } from "react-native-maps";
+import * as Location from 'expo-location';
+import { Alert } from 'react-native';
 
 export default function Home() {
   const [data, setData] = useState([]);
+  const [location, setLocation] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [region, setRegion] = useState({
+    latitude: 37.78825,
+    longitude: -122.4324,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
   const navigation = useNavigation();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setErrorMsg('Permission to access location was denied');
+          return;
+        }
+
+        let location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High
+        });
+        
+        setLocation(location);
+        setRegion({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.005,
+          longitudeDelta: 0.005,
+        });
+      } catch (error) {
+        console.error('Error getting location:', error);
+        setErrorMsg('Error getting location');
+      }
+    })();
+  }, []);
 
   const getbooking = async () => {
     try {
@@ -45,8 +82,8 @@ export default function Home() {
   const handleDecline = async (booking) => {
     try {
       console.log("Declining booking ID:", booking._id); // Added console log for booking ID
-      const response = await put(`bookings/rider/${booking._id}/reject`, { 
-        rejectionReason: "Vehicle not available at that time" 
+      const response = await put(`bookings/rider/${booking._id}/reject`, {
+        rejectionReason: "Vehicle not available at that time",
       });
       console.log(response.data);
       getbooking();
@@ -63,8 +100,8 @@ export default function Home() {
     });
 
     return (
-      <TouchableOpacity 
-        style={styles.card} 
+      <TouchableOpacity
+        style={styles.card}
         onPress={() => navigation.navigate("BookingDetail", { item })}
       >
         <View>
@@ -111,14 +148,14 @@ export default function Home() {
             </Text>
           </View>
           <View style={[styles.actionRow, { marginTop: 10 }]}>
-            <TouchableOpacity 
-              style={[styles.acceptBtn]} 
+            <TouchableOpacity
+              style={[styles.acceptBtn]}
               onPress={() => handleaccept(item)}
             >
               <Text style={styles.acceptText}>Accept</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.declineBtn]} 
+            <TouchableOpacity
+              style={[styles.declineBtn]}
               onPress={() => handleDecline(item)}
             >
               <Text style={styles.declineText}>Decline</Text>
@@ -151,23 +188,34 @@ export default function Home() {
             </View>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate("Notifications")}>
           <Feather name="bell" size={22} color="white" />
         </TouchableOpacity>
       </View>
 
       {/* Map */}
-      {/* <View style={styles.mapWrapper}>
+      <View style={styles.mapWrapper}>
         <MapView
           style={StyleSheet.absoluteFillObject}
-          initialRegion={{
-            latitude: 37.78825,
-            longitude: -122.4324,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }}
+          region={region}
+          onRegionChangeComplete={setRegion}
+          showsUserLocation={true}
+          followsUserLocation={true}
+          showsMyLocationButton={true}
+          zoomEnabled={true}
+          zoomControlEnabled={true}
         >
-          <Marker coordinate={{ latitude: 37.78825, longitude: -122.4324 }} />
+          {location && (
+            <Marker
+              coordinate={{
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+              }}
+              title="Your Location"
+              description="This is your current location"
+              pinColor="#1F5546"
+            />
+          )}
         </MapView>
         <View style={styles.searchWrapper}>
           <TextInput
@@ -180,7 +228,7 @@ export default function Home() {
         <TouchableOpacity style={styles.reloadBtn}>
           <AntDesign name="reload1" size={16} color="#fff" />
         </TouchableOpacity>
-      </View> */}
+      </View>
       <View style={styles.cardOverlay}>
         <Text style={styles.upcomingTitle}>Upcoming Request</Text>
         <FlatList
@@ -192,7 +240,7 @@ export default function Home() {
           contentContainerStyle={styles.cardRow}
           ListEmptyComponent={
             <Text
-              style={{ color: "#4D4D4D", textAlign: "center", marginTop: 20 }}
+              style={{ color: "#4D4D4D", textAlign: "center", marginTop: 1 }}
             >
               No ride requests available
             </Text>

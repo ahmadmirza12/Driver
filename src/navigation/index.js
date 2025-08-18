@@ -1,14 +1,11 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useEffect } from "react";
 import { useSelector } from "react-redux";
-
-//screens
 import i18n from "../language/i18n";
 import AuthStack from "./AuthStack";
 import MainStack from "./MainStack";
 
 const Stack = createNativeStackNavigator();
-
 const RootNavigation = () => {
   const Token = useSelector((state) => state.authConfig.token);
 
