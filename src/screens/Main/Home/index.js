@@ -5,105 +5,178 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { get, put } from "../../../services/ApiRequest";
 import { useEffect, useState } from "react";
 import { useNavigation } from "expo-router";
 import MapView, { Marker } from "react-native-maps";
-import * as Location from "expo-location";
 import { useSelector } from "react-redux";
+import * as Location from "expo-location";
+import { get, put } from "../../../services/ApiRequest";
 
-export default function Home() {
-  const userData = useSelector((state) => state.users.userData);
-  const [data, setData] = useState([]); 
-  const [location, setLocation] = useState(null);
-  const [errorMsg, setErrorMsg] = useState(null);
-  const [region, setRegion] = useState({
-    latitude: 37.78825,
-    longitude: -122.4324,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  });
+// Default map coordinates (San Francisco as fallback)
+const DEFAULT_REGION = {
+  latitude: 37.78825,
+  longitude: -122.4324,
+  latitudeDelta: 0.0922,
+  longitudeDelta: 0.0421,
+};
+
+export default function HomeScreen() {
+
+  const [bookings, setBookings] = useState([]);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [bookingStatuses, setBookingStatuses] = useState({});
+  const [mapRegion, setMapRegion] = useState(DEFAULT_REGION);
   const navigation = useNavigation();
 
-  const startride = async (booking) => {
-    try {
-      const response = await put(`bookings/rider/${booking._id}/start`);
-      console.log("response of start", response.data);
-    } catch (error) {
-      console.error("Error getting start ride:", error);
-    }
-  };
-
-  // useEffect(() => {
-  //   (async () => {
-  //     try {
-  //       let { status } = await Location.requestForegroundPermissionsAsync();
-  //       if (status !== "granted") {
-  //         setErrorMsg("Permission to access location was denied");
-  //         return;
-  //       }
-
-  //       let location = await Location.getCurrentPositionAsync({
-  //         accuracy: Location.Accuracy.High,
-  //       });
-
-  //       setLocation(location);
-  //       setRegion({
-  //         latitude: location.coords.latitude,
-  //         longitude: location.coords.longitude,
-  //         latitudeDelta: 0.005,
-  //         longitudeDelta: 0.005,
-  //       });
-  //     } catch (error) {
-  //       console.error("Error getting location:", error);
-  //       setErrorMsg("Error getting location");
-  //     }
-  //   })();
-  // }, []);
-
-  const getbooking = async () => {
+  // Fetch bookings from the API
+  const fetchBookings = async () => {
     try {
       const response = await get("bookings/rider/my-bookings");
-      // console.log(response.data?.data?.bookings);
-      setData(response.data?.data?.bookings);
+      const bookingData = response.data?.data?.bookings || [];
+      setBookings(bookingData);
+
+      // Initialize booking statuses
+      const statuses = bookingData.reduce((acc, booking) => {
+        acc[booking._id] = booking.status || "pending";
+        return acc;
+      }, {});
+      setBookingStatuses(statuses);
+
+      // Set map to the first booking's pickup location if available
+      if (bookingData.length > 0) {
+        setMapRegion({
+          latitude: bookingData[0].pickupLatitude,
+          longitude: bookingData[0].pickupLongitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        });
+      }
     } catch (error) {
-      console.error("Error fetching jobs:", error);
+      console.error("Failed to fetch bookings:", error);
     }
   };
+
+  // Start a ride and update the map to focus on the pickup location
+  const startRide = async (booking) => {
+    try {
+      const response = await put(`bookings/rider/${booking._id}/start`);
+      console.log("Ride started:", response.data);
+      setBookingStatuses((prev) => ({
+        ...prev,
+        [booking._id]: "started",
+      }));
+      setMapRegion({
+        latitude: response.data.data.booking.pickupLatitude,
+        longitude: response.data.data.booking.pickupLongitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
+    } catch (error) {
+      console.error("Error starting ride:", error);
+    }
+  };
+
+  // Complete a ride and refresh the bookings list
+  const completeRide = async (booking) => {
+    try {
+      const response = await put(`bookings/rider/${booking._id}/complete`);
+      console.log("Ride completed:", response.data);
+      setBookingStatuses((prev) => ({
+        ...prev,
+        [booking._id]: "completed",
+      }));
+      await fetchBookings();
+    } catch (error) {
+      console.error("Error completing ride:", error);
+    }
+  };
+
+  // Accept a booking and immediately start the ride
+  const acceptBooking = async (booking) => {
+    try {
+      console.log("Accepting booking:", booking._id);
+      const response = await put(`bookings/rider/${booking._id}/accept`);
+      console.log("Booking accepted:", response.data);
+      setBookingStatuses((prev) => ({
+        ...prev,
+        [booking._id]: "accepted",
+      }));
+      await startRide(booking);
+      await fetchBookings();
+    } catch (error) {
+      console.error("Error accepting booking:", error);
+    }
+  };
+
+  // Decline a booking with a reason
+  const declineBooking = async (booking) => {
+    try {
+      console.log("Declining booking:", booking._id);
+      const response = await put(`bookings/rider/${booking._id}/reject`, {
+        rejectionReason: "Vehicle not available",
+      });
+      console.log("Booking declined:", response.data);
+      setBookingStatuses((prev) => ({
+        ...prev,
+        [booking._id]: "declined",
+      }));
+      await fetchBookings();
+    } catch (error) {
+      console.error("Error declining booking:", error);
+    }
+  };
+
+  // Set up location tracking for real-time updates
+  const setupLocationTracking = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setLocationError("Location permission denied");
+        return;
+      }
+
+      // Get initial location
+      const initialLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      setCurrentLocation(initialLocation);
+
+      // Subscribe to location updates
+      const subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          distanceInterval: 10, // Update every 10 meters
+          timeInterval: 1000, // Update every second
+        },
+        (newLocation) => {
+          setCurrentLocation(newLocation);
+          setMapRegion((prev) => ({
+            ...prev,
+            latitude: newLocation.coords.latitude,
+            longitude: newLocation.coords.longitude,
+          }));
+        }
+      );
+
+      // Cleanup subscription on component unmount
+      return () => subscription.remove();
+    } catch (error) {
+      console.error("Error setting up location tracking:", error);
+      setLocationError("Unable to access location");
+    }
+  };
+
+  // Initialize bookings and location tracking on mount
   useEffect(() => {
-    getbooking();
+    fetchBookings();
   }, []);
 
-
-  const handleaccept = async (booking) => {
-    try {
-      console.log("Accepting booking ID:", booking._id);
-      const response = await put(`bookings/rider/${booking._id}/accept`);
-      console.log(response.data);
-      getbooking();
-    } catch (error) {
-      console.error("Error accepting job:", error);
-    }
-  };
-
-  const handleDecline = async (booking) => {
-    try {
-      console.log("Declining booking ID:", booking._id);
-      const response = await put(`bookings/rider/${booking._id}/reject`, {
-        rejectionReason: "Vehicle not available at that time",
-      });
-      console.log(response.data);
-      getbooking();
-    } catch (error) {
-      console.error("Error declining job:", error);
-    }
-  };
-
-  const renderRideItem = ({ item }) => {
+  // Render each booking as a card
+  const renderBookingCard = ({ item }) => {
     const pickupDate = new Date(item.pickupDateTime).toLocaleDateString();
     const pickupTime = new Date(item.pickupDateTime).toLocaleTimeString([], {
       hour: "2-digit",
@@ -115,37 +188,25 @@ export default function Home() {
         style={styles.card}
         onPress={() => navigation.navigate("BookingDetail", { item })}
       >
-        <View>
+        <View style={styles.cardContent}>
           <View style={styles.cardTop}>
-            <View>
+            <View style={styles.locationContainer}>
               <View style={styles.locationRow}>
                 <MaterialIcons name="location-on" size={19} color="#1F5546" />
-                <View style={{ flexDirection: "column" }}>
+                <View>
                   <Text style={styles.labelText}>Pickup</Text>
-                  <Text
-                    style={styles.valueText}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {(item.pickupLocation?.length > 26
-                      ? `${item.pickupLocation.substring(0, 26)}...`
-                      : item.pickupLocation) || "Location not specified"}
+                  <Text style={styles.valueText} numberOfLines={1}>
+                    {item.pickupLocation?.slice(0, 26) || "N/A"}
                   </Text>
                 </View>
               </View>
               <View style={styles.dotsLine} />
               <View style={styles.locationRow}>
                 <MaterialIcons name="location-on" size={19} color="#1F5546" />
-                <View style={{ flexDirection: "column" }}>
-                  <Text style={styles.labelText}>Drop Off</Text>
-                  <Text
-                    style={styles.valueText}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {(item.dropoffLocation?.length > 26
-                      ? `${item.dropoffLocation.substring(0, 26)}...`
-                      : item.dropoffLocation) || "Location not specified"}
+                <View>
+                  <Text style={styles.labelText}>Dropoff</Text>
+                  <Text style={styles.valueText} numberOfLines={1}>
+                    {item.dropoffLocation?.slice(0, 26) || "N/A"}
                   </Text>
                 </View>
               </View>
@@ -154,27 +215,63 @@ export default function Home() {
           </View>
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>
-              <Text style={{ fontWeight: "bold" }}>Date: </Text>
+              <Text style={styles.bold}>Date: </Text>
               {pickupDate}
             </Text>
             <Text style={styles.metaText}>
-              <Text style={{ fontWeight: "bold" }}>Time: </Text>
+              <Text style={styles.bold}>Time: </Text>
               {pickupTime}
             </Text>
           </View>
-          <View style={[styles.actionRow, { marginTop: 10 }]}>
-            <TouchableOpacity
-              style={[styles.acceptBtn]}
-              onPress={() => handleaccept(item)}
-            >
-              <Text style={styles.acceptText}>Accept</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.declineBtn]}
-              onPress={() => handleDecline(item)}
-            >
-              <Text style={styles.declineText}>Decline</Text>
-            </TouchableOpacity>
+          <View style={styles.actionRow}>
+            {bookingStatuses[item._id] === "completed" ? (
+              <TouchableOpacity
+                style={[styles.button, styles.completedButton]}
+                disabled
+              >
+                <Text style={styles.buttonText}>Ride Completed</Text>
+              </TouchableOpacity>
+            ) : bookingStatuses[item._id] === "started" ? (
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => completeRide(item)}
+              >
+                <Text style={styles.buttonText}>Complete Ride</Text>
+              </TouchableOpacity>
+            ) : bookingStatuses[item._id] === "accepted" ? (
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => startRide(item)}
+              >
+                <Text style={styles.buttonText}>Start Ride</Text>
+              </TouchableOpacity>
+            ) : bookingStatuses[item._id] === "declined" ? (
+              <TouchableOpacity
+                style={[styles.button, styles.declinedButton]}
+                disabled
+              >
+                <Text style={[styles.buttonText, styles.declinedText]}>
+                  Declined
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[styles.button, styles.acceptButton]}
+                  onPress={() => acceptBooking(item)}
+                >
+                  <Text style={styles.buttonText}>Accept</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.declineButton]}
+                  onPress={() => declineBooking(item)}
+                >
+                  <Text style={[styles.buttonText, styles.declineText]}>
+                    Decline
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -188,78 +285,69 @@ export default function Home() {
         <TouchableOpacity style={styles.profileSection}>
           <Image
             source={require("../../../assets/images/Roger.png")}
-            
             style={styles.avatar}
           />
-          <View style={{ marginLeft: 10 }}>
-            <Text style={styles.name}>{userData?.data?.user?.name}</Text>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={styles.address}>{userData?.data?.user?.email}</Text>
-              <AntDesign
-                name="down"
-                size={14}
-                color="#fff"
-                style={{ marginLeft: 5 }}
-              />
+          <View style={styles.profileDetails}>
+            <Text style={styles.name}>user</Text>
+            <View style={styles.emailContainer}>
+              <Text style={styles.email}>name</Text>
+              <AntDesign name="down" size={14} color="#fff" />
             </View>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("Notifications")}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Notifications")}
+        >
           <Feather name="bell" size={22} color="white" />
         </TouchableOpacity>
       </View>
 
-      {/* Map */}
-      <View style={styles.mapWrapper}>
+      <View style={styles.mapContainer}>
         <MapView
-          style={StyleSheet.absoluteFillObject}
-          region={region}
-          onRegionChangeComplete={setRegion}
-          showsUserLocation={true}
-          followsUserLocation={true}
-          showsMyLocationButton={true}
-          zoomEnabled={true}
-
-          userLocationPriority="high"
+          style={styles.map}
+          region={mapRegion}
+          onRegionChangeComplete={setMapRegion}
+          showsUserLocation
+          followsUserLocation
+          showsMyLocationButton
+          zoomEnabled
         >
-          {location && (
+          {currentLocation && (
             <Marker
               coordinate={{
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
+                latitude: currentLocation.coords.latitude,
+                longitude: currentLocation.coords.longitude,
               }}
               title="Your Location"
-              description="This is your current location"
+              description="Current rider location"
               pinColor="#1F5546"
             />
           )}
+          {bookings.map((booking) => (
+            <Marker
+              key={booking._id}
+              coordinate={{
+                latitude: booking.pickupLatitude,
+                longitude: booking.pickupLongitude,
+              }}
+              title="Pickup Location"
+              description={booking.pickupLocation}
+              pinColor="#FF0000"
+            />
+          ))}
         </MapView>
-        <View style={styles.searchWrapper}>
-          <TextInput
-            placeholder="Search"
-            placeholderTextColor="#A0A0A0"
-            style={styles.searchInput}
-          />
-          <AntDesign name="search1" size={18} color="#1F5546" />
-        </View>
-        <TouchableOpacity style={styles.reloadBtn}>
-          <AntDesign name="reload1" size={16} color="#fff" />
-        </TouchableOpacity>
       </View>
-      <View style={styles.cardOverlay}>
+
+      <View style={styles.bookingsOverlay}>
         <FlatList
-          data={data}
-          renderItem={renderRideItem}
-          keyExtractor={(item) => item._id || Math.random().toString()}
+          data={bookings}
+          renderItem={renderBookingCard}
+          keyExtractor={(item) => item._id}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.cardRow}
+          contentContainerStyle={styles.bookingsList}
           ListEmptyComponent={
-            <Text
-              style={{ color: "#4D4D4D", textAlign: "center", marginTop: 1 }}
-            >
-              No ride requests available
-            </Text>
+            <Text style={styles.emptyText}>No ride requests available</Text>
           }
         />
       </View>
@@ -280,7 +368,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    zIndex: 10,
   },
   profileSection: {
     flexDirection: "row",
@@ -291,151 +378,138 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 21,
   },
+  profileDetails: {
+    marginLeft: 10,
+  },
   name: {
-    fontSize: 13,
-    fontWeight: "500",
+    fontSize: 16,
+    fontWeight: "600",
     color: "#fff",
   },
-  address: {
+  emailContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  email: {
     fontSize: 14,
     color: "#fff",
     fontWeight: "400",
   },
-  mapWrapper: {
+  mapContainer: {
     flex: 1,
-    position: "relative",
   },
-  searchWrapper: {
-    position: "absolute",
-    top: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    elevation: 4,
-    zIndex: 5,
+  map: {
+    ...StyleSheet.absoluteFillObject,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    marginRight: 10,
-    color: "#000",
-  },
-  reloadBtn: {
-    position: "absolute",
-    bottom: 180,
-    right: 20,
-    backgroundColor: "#1F5546",
-    padding: 10,
-    borderRadius: 20,
-    elevation: 3,
-    zIndex: 4,
-  },
-  cardOverlay: {
+  bookingsOverlay: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 10,
-    paddingBottom: 20,
-    // backgroundColor: "#E8F6F2",
-    // paddingTop: 15,
-    // borderTopLeftRadius: 20,
-    // borderTopRightRadius: 20,
-    // elevation: 10,
-    // zIndex: 2,
+    padding: 10,
   },
-  upcomingTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 10,
-    marginBottom: 10,
-  },
-  cardRow: {
-    flexDirection: "row",
-    gap: 10,
+  bookingsList: {
     paddingHorizontal: 10,
+    gap: 15,
   },
   card: {
-    width: 239,
-    height: 148,
+    width: 240,
     backgroundColor: "#fff",
     borderRadius: 10,
-    padding: 10,
-    marginRight: 15,
+    padding: 12,
     elevation: 3,
+  },
+  cardContent: {
+    flex: 1,
     justifyContent: "space-between",
-    marginBottom: 5,
   },
   cardTop: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
+  locationContainer: {
+    flex: 1,
+  },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
   labelText: {
-    fontSize: 8,
+    fontSize: 10,
     color: "#9C9C9C",
     fontWeight: "500",
   },
   valueText: {
-    fontSize: 11,
-    fontWeight: "#4D4D4D",
+    fontSize: 12,
     color: "#4D4D4D",
-    marginBottom: 2,
+    fontWeight: "500",
   },
   dotsLine: {
     borderLeftWidth: 1,
     borderColor: "#D3D3D3",
     height: 8,
-    marginLeft: 6,
-    marginVertical: 2,
+    marginLeft: 8,
+    marginVertical: 4,
   },
   price: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
     color: "#1F5546",
   },
   metaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginTop: 8,
   },
   metaText: {
     fontSize: 10,
     color: "#333",
   },
+  bold: {
+    fontWeight: "600",
+  },
   actionRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
+    marginTop: 12,
+    gap: 10,
   },
-  acceptBtn: {
+  button: {
     backgroundColor: "#1F5546",
-    paddingVertical: 4,
-    paddingHorizontal: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
     borderRadius: 6,
+    flex: 1,
   },
-  declineBtn: {
+  acceptButton: {
+    backgroundColor: "#1F5546",
+  },
+  declineButton: {
     backgroundColor: "#DADADA",
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    marginLeft: 10,
   },
-  acceptText: {
+  completedButton: {
+    backgroundColor: "#4CAF50",
+  },
+  declinedButton: {
+    backgroundColor: "#FF0000",
+  },
+  buttonText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
+    textAlign: "center",
   },
   declineText: {
     color: "#333",
+  },
+  declinedText: {
+    color: "#fff",
+  },
+  emptyText: {
+    color: "#4D4D4D",
+    textAlign: "center",
     fontSize: 14,
-    fontWeight: "600",
+    padding: 20,
   },
 });
