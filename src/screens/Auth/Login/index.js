@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -18,7 +18,7 @@ import ScreenWrapper from "../../../components/ScreenWrapper";
 import fonts from "../../../assets/fonts";
 import CustomInput from "../../../components/CustomInput";
 import { setLocation } from "../../../store/reducer/usersSlice";
-import { setToken } from "../../../store/reducer/AuthConfig";
+import { setToken, setUser } from "../../../store/reducer/AuthConfig";
 import GetLocation from "../../../utils/GetLocation";
 import { regEmail } from "../../../utils/constants";
 import { post } from "../../../services/ApiRequest";
@@ -88,7 +88,11 @@ const Login = ({ navigation }) => {
     try {
       setLoading(true);
       const response = await post("auth/login", data);
-      console.log("Login API Response:", response.data.data.token);
+      console.log("Login API Response:", response.data.data);
+      dispatch(setUser(response.data.data.user));
+      
+
+
 
       if (response.data.data.token) {
         // Dispatch token to Redux store

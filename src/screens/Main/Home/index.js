@@ -1,3 +1,4 @@
+
 import { AntDesign, Feather, MaterialIcons } from "@expo/vector-icons";
 import {
   FlatList,
@@ -10,12 +11,17 @@ import {
 } from "react-native";
 import { useEffect, useState } from "react";
 import { useNavigation } from "expo-router";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  setBookingStatus,
+  setMultipleBookingStatuses,
+  selectBookingStatuses,
+} from "../../../store/reducer/bookingSlice";
 import MapView, { Marker } from "react-native-maps";
-import { useSelector } from "react-redux";
 import * as Location from "expo-location";
+import { ActivityIndicator } from "react-native";
 import { get, put } from "../../../services/ApiRequest";
 
-// Default map coordinates (San Francisco as fallback)
 const DEFAULT_REGION = {
   latitude: 37.78825,
   longitude: -122.4324,
@@ -24,51 +30,42 @@ const DEFAULT_REGION = {
 };
 
 export default function HomeScreen() {
-
   const [bookings, setBookings] = useState([]);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
-  const [bookingStatuses, setBookingStatuses] = useState({});
   const [mapRegion, setMapRegion] = useState(DEFAULT_REGION);
+  const [loadingStates, setLoadingStates] = useState({});
+  const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
+  const dispatch = useDispatch();
+  const bookingStatuses = useSelector(selectBookingStatuses);
 
-  // Fetch bookings from the API
   const fetchBookings = async () => {
     try {
+      setLoading(true);
       const response = await get("bookings/rider/my-bookings");
       const bookingData = response.data?.data?.bookings || [];
       setBookings(bookingData);
 
-      // Initialize booking statuses
       const statuses = bookingData.reduce((acc, booking) => {
         acc[booking._id] = booking.status || "pending";
         return acc;
       }, {});
-      setBookingStatuses(statuses);
-
-      // Set map to the first booking's pickup location if available
-      if (bookingData.length > 0) {
-        setMapRegion({
-          latitude: bookingData[0].pickupLatitude,
-          longitude: bookingData[0].pickupLongitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        });
-      }
+      dispatch(setMultipleBookingStatuses(statuses));
     } catch (error) {
       console.error("Failed to fetch bookings:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Start a ride and update the map to focus on the pickup location
   const startRide = async (booking) => {
     try {
+      setLoadingStates((prev) => ({ ...prev, [booking._id]: "starting" }));
+      console.log("Start ride:", booking._id);
       const response = await put(`bookings/rider/${booking._id}/start`);
       console.log("Ride started:", response.data);
-      setBookingStatuses((prev) => ({
-        ...prev,
-        [booking._id]: "started",
-      }));
+      dispatch(setBookingStatus({ bookingId: booking._id, status: "started" }));
       setMapRegion({
         latitude: response.data.data.booking.pickupLatitude,
         longitude: response.data.data.booking.pickupLongitude,
@@ -77,60 +74,63 @@ export default function HomeScreen() {
       });
     } catch (error) {
       console.error("Error starting ride:", error);
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, [booking._id]: null }));
     }
   };
 
-  // Complete a ride and refresh the bookings list
   const completeRide = async (booking) => {
     try {
+      setLoadingStates((prev) => ({ ...prev, [booking._id]: "completing" }));
       const response = await put(`bookings/rider/${booking._id}/complete`);
       console.log("Ride completed:", response.data);
-      setBookingStatuses((prev) => ({
-        ...prev,
-        [booking._id]: "completed",
-      }));
+      dispatch(
+        setBookingStatus({ bookingId: booking._id, status: "completed" })
+      );
       await fetchBookings();
     } catch (error) {
       console.error("Error completing ride:", error);
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, [booking._id]: null }));
     }
   };
 
-  // Accept a booking and immediately start the ride
   const acceptBooking = async (booking) => {
     try {
+      setLoadingStates((prev) => ({ ...prev, [booking._id]: "accepting" }));
       console.log("Accepting booking:", booking._id);
       const response = await put(`bookings/rider/${booking._id}/accept`);
       console.log("Booking accepted:", response.data);
-      setBookingStatuses((prev) => ({
-        ...prev,
-        [booking._id]: "accepted",
-      }));
-      await startRide(booking);
+      dispatch(
+        setBookingStatus({ bookingId: booking._id, status: "accepted" })
+      );
       await fetchBookings();
     } catch (error) {
       console.error("Error accepting booking:", error);
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, [booking._id]: null }));
     }
   };
 
-  // Decline a booking with a reason
   const declineBooking = async (booking) => {
     try {
+      setLoadingStates((prev) => ({ ...prev, [booking._id]: "declining" }));
       console.log("Declining booking:", booking._id);
       const response = await put(`bookings/rider/${booking._id}/reject`, {
         rejectionReason: "Vehicle not available",
       });
       console.log("Booking declined:", response.data);
-      setBookingStatuses((prev) => ({
-        ...prev,
-        [booking._id]: "declined",
-      }));
+      dispatch(
+        setBookingStatus({ bookingId: booking._id, status: "declined" })
+      );
       await fetchBookings();
     } catch (error) {
       console.error("Error declining booking:", error);
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, [booking._id]: null }));
     }
   };
 
-  // Set up location tracking for real-time updates
   const setupLocationTracking = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -139,18 +139,16 @@ export default function HomeScreen() {
         return;
       }
 
-      // Get initial location
       const initialLocation = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
       setCurrentLocation(initialLocation);
 
-      // Subscribe to location updates
       const subscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
-          distanceInterval: 10, // Update every 10 meters
-          timeInterval: 1000, // Update every second
+          distanceInterval: 10,
+          timeInterval: 1000,
         },
         (newLocation) => {
           setCurrentLocation(newLocation);
@@ -162,7 +160,6 @@ export default function HomeScreen() {
         }
       );
 
-      // Cleanup subscription on component unmount
       return () => subscription.remove();
     } catch (error) {
       console.error("Error setting up location tracking:", error);
@@ -170,18 +167,55 @@ export default function HomeScreen() {
     }
   };
 
-  // Initialize bookings and location tracking on mount
   useEffect(() => {
     fetchBookings();
+    setupLocationTracking();
   }, []);
 
-  // Render each booking as a card
+  const updatelocationn = async (booking) => {
+    try {
+      console.log("location =========> booking:", booking._id);
+      const response = await put(`bookings/rider/${booking._id}/location`, {
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+      });
+      console.log("Location updated successfully:", response.data);
+    } catch (error) {
+      console.error("Error updating location:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (currentLocation) {
+      updatelocationn(bookings[0]);
+    }
+  }, [currentLocation]);
+
   const renderBookingCard = ({ item }) => {
     const pickupDate = new Date(item.pickupDateTime).toLocaleDateString();
     const pickupTime = new Date(item.pickupDateTime).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
+
+    const getButtonState = () => {
+      const status = bookingStatuses[item._id];
+      const isLoading = loadingStates[item._id];
+
+      if (status === "completed") {
+        return "completed";
+      } else if (status === "started") {
+        return "complete";
+      } else if (status === "accepted") {
+        return "start";
+      } else if (status === "declined") {
+        return "declined";
+      } else {
+        return "pending";
+      }
+    };
+
+    const buttonState = getButtonState();
 
     return (
       <TouchableOpacity
@@ -223,29 +257,46 @@ export default function HomeScreen() {
               {pickupTime}
             </Text>
           </View>
+
           <View style={styles.actionRow}>
-            {bookingStatuses[item._id] === "completed" ? (
+            {buttonState === "completed" && (
               <TouchableOpacity
                 style={[styles.button, styles.completedButton]}
                 disabled
               >
-                <Text style={styles.buttonText}>Ride Completed</Text>
+                <Text style={styles.buttonText}>Ride is Completed</Text>
               </TouchableOpacity>
-            ) : bookingStatuses[item._id] === "started" ? (
+            )}
+
+            {buttonState === "complete" && (
               <TouchableOpacity
-                style={styles.button}
+                style={[styles.button, styles.completeButton]}
                 onPress={() => completeRide(item)}
+                disabled={loadingStates[item._id] === "completing"}
               >
-                <Text style={styles.buttonText}>Complete Ride</Text>
+                {loadingStates[item._id] === "completing" ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Complete</Text>
+                )}
               </TouchableOpacity>
-            ) : bookingStatuses[item._id] === "accepted" ? (
+            )}
+
+            {buttonState === "start" && (
               <TouchableOpacity
-                style={styles.button}
+                style={[styles.button, styles.startButton]}
                 onPress={() => startRide(item)}
+                disabled={loadingStates[item._id] === "starting"}
               >
-                <Text style={styles.buttonText}>Start Ride</Text>
+                {loadingStates[item._id] === "starting" ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Start</Text>
+                )}
               </TouchableOpacity>
-            ) : bookingStatuses[item._id] === "declined" ? (
+            )}
+
+            {buttonState === "declined" && (
               <TouchableOpacity
                 style={[styles.button, styles.declinedButton]}
                 disabled
@@ -254,21 +305,33 @@ export default function HomeScreen() {
                   Declined
                 </Text>
               </TouchableOpacity>
-            ) : (
+            )}
+
+            {buttonState === "pending" && (
               <>
                 <TouchableOpacity
                   style={[styles.button, styles.acceptButton]}
                   onPress={() => acceptBooking(item)}
+                  disabled={loadingStates[item._id] === "accepting"}
                 >
-                  <Text style={styles.buttonText}>Accept</Text>
+                  {loadingStates[item._id] === "accepting" ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.buttonText}>Accept</Text>
+                  )}
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.button, styles.declineButton]}
                   onPress={() => declineBooking(item)}
+                  disabled={loadingStates[item._id] === "declining"}
                 >
-                  <Text style={[styles.buttonText, styles.declineText]}>
-                    Decline
-                  </Text>
+                  {loadingStates[item._id] === "declining" ? (
+                    <ActivityIndicator color="#E74C3C" />
+                  ) : (
+                    <Text style={[styles.buttonText, styles.declineText]}>
+                      Decline
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </>
             )}
@@ -288,16 +351,14 @@ export default function HomeScreen() {
             style={styles.avatar}
           />
           <View style={styles.profileDetails}>
-            <Text style={styles.name}>user</Text>
+            <Text style={styles.name}>Name</Text>
             <View style={styles.emailContainer}>
-              <Text style={styles.email}>name</Text>
+              <Text style={styles.email}>user@example.com</Text>
               <AntDesign name="down" size={14} color="#fff" />
             </View>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Notifications")}
-        >
+        <TouchableOpacity onPress={() => navigation.navigate("Notifications")}>
           <Feather name="bell" size={22} color="white" />
         </TouchableOpacity>
       </View>
@@ -487,6 +548,12 @@ const styles = StyleSheet.create({
   },
   declineButton: {
     backgroundColor: "#DADADA",
+  },
+  startButton: {
+    backgroundColor: "#FF9500",
+  },
+  completeButton: {
+    backgroundColor: "#007AFF",
   },
   completedButton: {
     backgroundColor: "#4CAF50",
