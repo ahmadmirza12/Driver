@@ -1,8 +1,8 @@
-
 import { AntDesign, Feather, MaterialIcons } from "@expo/vector-icons";
 import {
   FlatList,
   Image,
+  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
@@ -51,6 +51,7 @@ export default function HomeScreen() {
         acc[booking._id] = booking.status || "pending";
         return acc;
       }, {});
+      // console.log("statuses", statuses);
       dispatch(setMultipleBookingStatuses(statuses));
     } catch (error) {
       console.error("Failed to fetch bookings:", error);
@@ -172,6 +173,10 @@ export default function HomeScreen() {
     setupLocationTracking();
   }, []);
 
+
+// update location but its not working 
+
+
   const updatelocationn = async (booking) => {
     try {
       console.log("location =========> booking:", booking._id);
@@ -185,11 +190,13 @@ export default function HomeScreen() {
     }
   };
 
-  useEffect(() => {
-    if (currentLocation) {
-      updatelocationn(bookings[0]);
-    }
-  }, [currentLocation]);
+  // useEffect(() => {
+  //   updatelocationn();
+  // }, []);
+
+
+
+
 
   const renderBookingCard = ({ item }) => {
     const pickupDate = new Date(item.pickupDateTime).toLocaleDateString();
@@ -320,6 +327,7 @@ export default function HomeScreen() {
                     <Text style={styles.buttonText}>Accept</Text>
                   )}
                 </TouchableOpacity>
+                
                 <TouchableOpacity
                   style={[styles.button, styles.declineButton]}
                   onPress={() => declineBooking(item)}
@@ -342,7 +350,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#1F5546" barStyle="light-content" />
       <View style={styles.header}>
         <TouchableOpacity style={styles.profileSection}>
@@ -362,6 +370,7 @@ export default function HomeScreen() {
           <Feather name="bell" size={22} color="white" />
         </TouchableOpacity>
       </View>
+     
 
       <View style={styles.mapContainer}>
         <MapView
@@ -412,7 +421,8 @@ export default function HomeScreen() {
           }
         />
       </View>
-    </View>
+      
+    </SafeAreaView>
   );
 }
 

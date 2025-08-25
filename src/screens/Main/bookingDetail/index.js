@@ -16,18 +16,7 @@ const BookingDetail = ({ route }) => {
     minute: "2-digit",
   });
 
-  const startride = async (item) => {
-    setloading(true);
-    try {
-      const response = await put(`bookings/rider/${item._id}/start`);
-      console.log("response of start", response.data);
-      navigation.goBack();
-    } catch (error) {
-      console.error("Error getting start ride:", error);
-    } finally {
-      setloading(false);
-    }
-  };
+ 
 
   return (
     <View style={styles.container}>
@@ -134,16 +123,6 @@ const BookingDetail = ({ route }) => {
             <Text style={styles.detailValue}>{item.customerId.phone}</Text>
           </View>
         </View>
-      </View>
-      <View style={styles.horizantal}>
-        <CustomButton
-          title={loading ? "Sarting..." : "Start Ride"}
-          fontSize={16}
-          fontWeight="400"
-          marginTop={30}
-          onPress={startride}
-          backgroundColor="#1F5546"
-        />
       </View>
     </View>
   );

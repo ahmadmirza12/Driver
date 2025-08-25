@@ -12,7 +12,7 @@
   <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-  
+
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
@@ -40,4 +40,10 @@
      android:name="com.google.android.geo.API_KEY"
      android:value="AIzaSyCt1aq0GevUtpMApMtlnOt6AjeW8mamUCw"/>
   </application>
+    <service 
+          android:name="com.asterinet.react.bgactions.RNBackgroundActionsTask"
+          android:foregroundServiceType="dataSync"
+        />
+        <service android:name="com.voximplant.foregroundservice.VIForegroundService"> </service>
+
 </manifest>

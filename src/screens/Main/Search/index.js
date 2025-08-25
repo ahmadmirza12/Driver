@@ -12,16 +12,24 @@ import { get } from "../../../services/ApiRequest";
 
 export default function Jobs({ navigation }) {
   const [selectedTab, setSelectedTab] = useState("All");
-  const tabs = ["All", "Assigned", "Accepted", "Rejected", "In-Progress", "Completed"];
+  const tabs = [
+    "All",
+    "Assigned",
+    "Accepted",
+    "Rejected",
+    "In-Progress",
+    "Completed",
+  ];
   const [loading, setLoading] = useState(false);
   const [jobs, setJobs] = useState([]);
 
   const getJobs = async (status = "") => {
     try {
       setLoading(true);
-      const query = status && status !== "All" ? `?status=${status.toLowerCase()}` : "";
+      const query =
+        status && status !== "All" ? `?status=${status.toLowerCase()}` : "";
       const response = await get(`bookings/rider/my-bookings${query}`);
-      console.log("=====>", response.data);
+      console.log("=====>", response.data.data.bookings);
       setJobs(response.data.data.bookings || []);
     } catch (error) {
       console.error("Error fetching jobs:", error);
@@ -72,9 +80,10 @@ export default function Jobs({ navigation }) {
             </View>
           </View>
 
-          <Text style={styles.infoText}>Distance: N/A</Text>
+          <Text style={styles.infoText}>{job.serviceType}</Text>
           <Text style={styles.infoText}>
-            Time: {new Date(job.pickupDateTime).toLocaleTimeString([], {
+            Time:{" "}
+            {new Date(job.pickupDateTime).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
             })}
@@ -82,19 +91,20 @@ export default function Jobs({ navigation }) {
         </View>
 
         <View style={styles.cardRight}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-          >
-          <Text style={styles.price}>${job.estimatedPrice}</Text>
-          <TouchableOpacity
-            style={[styles.statusBtn, { backgroundColor: getStatusColor(job.status) }]}
-          >
-            <Text style={styles.statusBtnText}>{job.status}</Text>
-          </TouchableOpacity>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={{ flexDirection: "column", gap: 5 }}>
+              <TouchableOpacity
+                style={[
+                  styles.statusBtn,
+                  { backgroundColor: getStatusColor(job.status) },
+                ]}
+              >
+                <Text style={styles.statusBtnText}>{job.status}</Text>
+              </TouchableOpacity>
+              <Text style={styles.price}>${job.estimatedPrice}</Text>
+            </View>
           </ScrollView>
         </View>
-
       </View>
     );
   };
@@ -131,27 +141,28 @@ export default function Jobs({ navigation }) {
         <Text style={styles.headerText}>Jobs</Text>
         <AntDesign name="left" size={20} color="transparent" />
       </View>
-
       <View style={styles.tabsContainer}>
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[
-              styles.tabButton,
-              selectedTab === tab && styles.tabButtonActive,
-            ]}
-            onPress={() => setSelectedTab(tab)}
-          >
-            <Text
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {tabs.map((tab) => (
+            <TouchableOpacity
+              key={tab}
               style={[
-                styles.tabText,
-                selectedTab === tab && styles.tabTextActive,
+                styles.tabButton,
+                selectedTab === tab && styles.tabButtonActive,
               ]}
+              onPress={() => setSelectedTab(tab)}
             >
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.tabText,
+                  selectedTab === tab && styles.tabTextActive,
+                ]}
+              >
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       <View style={styles.contentContainer}>{renderTabContent()}</View>
@@ -166,7 +177,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#1F5546",
-    height: 114,
+    height: 100,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -175,13 +186,13 @@ const styles = StyleSheet.create({
   },
   headerText: {
     color: "white",
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: "600",
   },
   tabsContainer: {
     flexDirection: "row",
     marginTop: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
   },
   tabButton: {
     borderWidth: 1,
@@ -219,7 +230,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: "white",
-    width: 344,
+    width: 360,
     borderRadius: 10,
     padding: 16,
     flexDirection: "row",
@@ -263,13 +274,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#1F5546",
+    position: "absolute",
+    bottom: 10,
+    right: 10,
   },
   statusBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 5,
+    borderRadius: 10,
     height: 27,
-    width: 81,
+    width: 75,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -12,18 +12,18 @@ import { StatusBar } from "react-native-web";
 import { Platform } from "react-native";
 import { useNavigation } from "expo-router";
 import { del, get, put } from "../../../services/ApiRequest";
+import { Ionicons } from "@expo/vector-icons";
 
 const Notifications = () => {
   const navigation = useNavigation();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
-
   // Fetch notifications from API
   const getNotification = async () => {
     setLoading(true);
     try {
       const response = await get("notifications");
-      console.log("Notifications API Response:", response.data.data);
+      // console.log("Notifications API Response:", response.data.data);
       const apiData = response.data?.data?.notifications || [];
       const processedNotifications = apiData.map((notification) => ({
         id: notification._id,
@@ -42,11 +42,9 @@ const Notifications = () => {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     getNotification();
   }, []);
-
   // Format date to relative time
   const formatRelativeTime = (dateString) => {
     const date = new Date(dateString);
@@ -70,7 +68,6 @@ const Notifications = () => {
     }
     return "Just now";
   };
-
   // Mark single notification as read
   const markAsRead = async (_id) => {
     try {
@@ -95,7 +92,6 @@ const Notifications = () => {
       await getNotification();
     }
   };
-
   // Delete single notification
   const handleDeleteNotification = (_id) => {
     Alert.alert(
@@ -129,7 +125,6 @@ const Notifications = () => {
       await getNotification();
     }
   };
-
   // Mark all notifications as read
   const markAllAsRead = async () => {
     try {
@@ -158,6 +153,7 @@ const Notifications = () => {
         return "⏰";
     }
   };
+
 
   // Render individual notification item
   const renderNotificationItem = ({ item }) => (
@@ -215,7 +211,7 @@ const Notifications = () => {
       <Text style={styles.emptyStateIcon}>🔔</Text>
       <Text style={styles.emptyStateTitle}>No Notifications</Text>
       <Text style={styles.emptyStateMessage}>
-        You're all caught up! New notifications will appear here.
+        Youre all caught up! New notifications will appear here.
       </Text>
     </View>
   );
@@ -226,6 +222,9 @@ const Notifications = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#1F5546" barStyle="light-content" />
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="black" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>
           Notifications ({notifications.length})
         </Text>
@@ -276,7 +275,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    // justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 15,
     backgroundColor: "#fff",
@@ -287,6 +286,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     color: "#212529",
+    marginHorizontal: 10,
   },
   unreadBadge: {
     backgroundColor: "#dc3545",
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#1F5546",
+    backgroundColor: "red",
     marginTop: 6,
   },
   notificationMessage: {

@@ -25,6 +25,7 @@ import { post } from "../../../services/ApiRequest";
 import { showSuccess, showError } from "../../../utils/toast";
 import { FontAwesome } from "@expo/vector-icons";
 
+
 const Login = ({ navigation }) => {
   const dispatch = useDispatch();
   const locationData = GetLocation();
@@ -48,7 +49,6 @@ const Login = ({ navigation }) => {
       passwordError: "",
     };
 
-    // Email validation
     if (!state.email) {
       newErrors.emailError = "Please enter Email address";
       isValid = false;
@@ -89,7 +89,7 @@ const Login = ({ navigation }) => {
       setLoading(true);
       const response = await post("auth/login", data);
       console.log("Login API Response:", response.data.data);
-      dispatch(setUser(response.data.data.user));
+      // dispatch(setUser(response.data.data.user));
       
 
 

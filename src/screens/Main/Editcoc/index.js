@@ -67,23 +67,27 @@ const Editdoc = () => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Vehicle Documents</Text>
             <View style={styles.photoRow}>
+              <Text style={styles.infoText}>Grant Certificate</Text>
               <UploadImageUI
-                label="Grant Certificate"
                 onUploadComplete={handleDocumentUpload("grant")}
                 initialImage={documents.grant}
               />
+            </View>
+            <View style={styles.photoRow}>
+              <Text style={styles.infoText}>Insurance</Text>
               <UploadImageUI
-                label="Insurance"
                 onUploadComplete={handleDocumentUpload("insurance")}
                 initialImage={documents.insurance}
               />
             </View>
+            <View style={styles.photoRow}>
+              <Text style={styles.infoText}>EVP Certificate</Text>
+              <UploadImageUI
+                onUploadComplete={handleDocumentUpload("evp")}
+                initialImage={documents.evp}
+              />
+            </View>
           </View>
-          <UploadImageUI
-            label="EVP Certificate"
-            onUploadComplete={handleDocumentUpload("evp")}
-            initialImage={documents.evp}
-          />
         </View>
 
         {/* Save Button */}
@@ -125,7 +129,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 10,
   },
   card: {
     backgroundColor: "white",
@@ -167,5 +171,11 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  infoText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#26433D",
+    marginTop: 15,
   },
 });

@@ -73,42 +73,55 @@ const Editphoto = () => {
         <View style={styles.card}>
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Vehicle Photos</Text>
-
+            <View style={styles.photoRow}>
+            <Text style={styles.infoText}>Front</Text>
             <UploadImageUI
-              label="Front"
               onUploadComplete={handleDocumentUpload("front")}
               initialImage={documentImages.front}
             />
+            </View>
 
+
+            <View style={styles.photoRow}>
+            <Text style={styles.infoText}>Back</Text>
             <UploadImageUI
-              label="Back"
               onUploadComplete={handleDocumentUpload("back")}
               initialImage={documentImages.back}
             />
+            </View>
 
+
+            <View style={styles.photoRow}>
+            <Text style={styles.infoText}>Left</Text>
             <UploadImageUI
-              label="Left"
               onUploadComplete={handleDocumentUpload("left")}
               initialImage={documentImages.left}
             />
+            </View>
 
+            <View style={styles.photoRow}>
+            <Text style={styles.infoText}>Right</Text>
             <UploadImageUI
-              label="Right"
               onUploadComplete={handleDocumentUpload("right")}
               initialImage={documentImages.right}
             />
+            </View>
 
+            <View style={styles.photoRow}>
+            <Text style={styles.infoText}>Interior</Text>
             <UploadImageUI
-              label="Interior"
               onUploadComplete={handleDocumentUpload("interior")}
               initialImage={documentImages.interior}
             />
+            </View>
 
+            <View style={styles.photoRow}>
+            <Text style={styles.infoText}>Dashboard</Text>
             <UploadImageUI
-              label="Dashboard"
               onUploadComplete={handleDocumentUpload("dashboard")}
               initialImage={documentImages.dashboard}
             />
+            </View>
           </View>
 
           {/* Save Button */}
@@ -198,5 +211,14 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  photoRow: {
+    marginBottom: 15,
+  },
+  infoText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#26433D",
+    marginBottom: 10,
   },
 });
