@@ -39,11 +39,10 @@
     <meta-data
      android:name="com.google.android.geo.API_KEY"
      android:value="AIzaSyCt1aq0GevUtpMApMtlnOt6AjeW8mamUCw"/>
-  </application>
     <service 
-          android:name="com.asterinet.react.bgactions.RNBackgroundActionsTask"
-          android:foregroundServiceType="dataSync"
-        />
-        <service android:name="com.voximplant.foregroundservice.VIForegroundService"> </service>
-
+      android:name="com.asterinet.react.bgactions.RNBackgroundActionsTask"
+      android:foregroundServiceType="dataSync"
+    />
+    <service android:name="com.voximplant.foregroundservice.VIForegroundService"/>
+  </application>
 </manifest>

@@ -12,15 +12,14 @@ const createApi = () => {
   });
 
   // Request interceptor to add token to headers
-  // In ApiRequest.js
   instance.interceptors.request.use(
     (config) => {
       const state = store.getState();
       const token = state.authConfig?.token;
-      console.log(token);
       if (token) {
         config.headers["Authorization"] = `Bearer ${token}`;
       }
+      console.log(token)
       return config;
     },
     (error) => Promise.reject(error)
@@ -39,11 +38,15 @@ const createApi = () => {
     return instance.put(url, data);
   };
 
+  const patch = (url, data) => {
+    return instance.patch(url, data);
+  };
+
   const del = (url) => {
     return instance.delete(url);
   };
 
-  return { get, post, put, del };
+  return { get, post, put, patch, del };
 };
 
-export const { get, post, put, del } = createApi();
+export const { get, post, put, patch, del } = createApi();
