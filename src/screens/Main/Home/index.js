@@ -8,6 +8,8 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Modal,
+  TextInput,
 } from "react-native";
 import { useEffect, useState } from "react";
 import { useNavigation } from "expo-router";
@@ -20,7 +22,7 @@ import {
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { ActivityIndicator } from "react-native";
-import { get, put } from "../../../services/ApiRequest";
+import { get, patch, post } from "../../../services/ApiRequest";
 
 const DEFAULT_REGION = {
   latitude: 37.78825,
@@ -34,8 +36,14 @@ export default function HomeScreen() {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [mapRegion, setMapRegion] = useState(DEFAULT_REGION);
-  const [loadingStates, setLoadingStates] = useState({});
   const [loading, setLoading] = useState(false);
+  const [loadingStates, setLoadingStates] = useState({});
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState(null);
+  const [stopLocation, setStopLocation] = useState("");
+  const [stopDescription, setStopDescription] = useState("");
+  const [additionalAmount, setAdditionalAmount] = useState("0");
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const bookingStatuses = useSelector(selectBookingStatuses);
@@ -43,15 +51,14 @@ export default function HomeScreen() {
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const response = await get("bookings/rider/my-bookings");
+      const response = await get("driverbooking/driver/assignments");
       const bookingData = response.data?.data?.bookings || [];
       setBookings(bookingData);
 
       const statuses = bookingData.reduce((acc, booking) => {
-        acc[booking._id] = booking.status || "pending";
+        acc[booking._id] = booking.rideStatus || "not-started";
         return acc;
       }, {});
-      // console.log("statuses", statuses);
       dispatch(setMultipleBookingStatuses(statuses));
     } catch (error) {
       console.error("Failed to fetch bookings:", error);
@@ -60,76 +67,68 @@ export default function HomeScreen() {
     }
   };
 
-  const startRide = async (booking) => {
+  const startRide = async (booking, vehicleId) => {
     try {
       setLoadingStates((prev) => ({ ...prev, [booking._id]: "starting" }));
-      console.log("Start ride:", booking._id);
-      const response = await put(`bookings/rider/${booking._id}/start`);
+      const response = await patch(
+        `driverbooking/${booking.bookingId}/assignments/${booking.assignmentId}/vehicles/${vehicleId}/ride-status`,
+        { rideStatus: "started" }
+      );
       console.log("Ride started:", response.data);
       dispatch(setBookingStatus({ bookingId: booking._id, status: "started" }));
-      setMapRegion({
-        latitude: response.data.data.booking.pickupLatitude,
-        longitude: response.data.data.booking.pickupLongitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      });
+      await fetchBookings();
     } catch (error) {
-      console.error("Error starting ride:", error);
+      console.error("Error starting ride:", error.response?.data?.message || error.message);
     } finally {
       setLoadingStates((prev) => ({ ...prev, [booking._id]: null }));
     }
   };
 
-  const completeRide = async (booking) => {
+  const completeRide = async (booking, vehicleId) => {
     try {
       setLoadingStates((prev) => ({ ...prev, [booking._id]: "completing" }));
-      const response = await put(`bookings/rider/${booking._id}/complete`);
+      const response = await patch(
+        `driverbooking/${booking.bookingId}/assignments/${booking.assignmentId}/vehicles/${vehicleId}/ride-status`,
+        { rideStatus: "completed" }
+      );
       console.log("Ride completed:", response.data);
-      dispatch(
-        setBookingStatus({ bookingId: booking._id, status: "completed" })
-      );
+      dispatch(setBookingStatus({ bookingId: booking._id, status: "completed" }));
       await fetchBookings();
     } catch (error) {
-      console.error("Error completing ride:", error);
+      console.error("Error completing ride:", error.response?.data?.message || error.message);
     } finally {
       setLoadingStates((prev) => ({ ...prev, [booking._id]: null }));
     }
   };
 
-  const acceptBooking = async (booking) => {
+  const addStop = async () => {
     try {
-      setLoadingStates((prev) => ({ ...prev, [booking._id]: "accepting" }));
-      console.log("Accepting booking:", booking._id);
-      const response = await put(`bookings/rider/${booking._id}/accept`);
-      console.log("Booking accepted:", response.data);
-      dispatch(
-        setBookingStatus({ bookingId: booking._id, status: "accepted" })
+      setLoadingStates((prev) => ({ ...prev, [selectedBooking._id]: "addingStop" }));
+      const response = await post(
+        `driverbooking/${selectedBooking.bookingId}/assignments/${selectedBooking.assignmentId}/vehicles/${selectedVehicleId}/stops`,
+        {
+          location: stopLocation,
+          description: stopDescription,
+          additionalAmount: parseFloat(additionalAmount) || 0,
+        }
       );
+      console.log("Stop added:", response.data);
+      setModalVisible(false);
+      setStopLocation("");
+      setStopDescription("");
+      setAdditionalAmount("0");
       await fetchBookings();
     } catch (error) {
-      console.error("Error accepting booking:", error);
+      console.error("Error adding stop:", error.response?.data?.message || error.message);
     } finally {
-      setLoadingStates((prev) => ({ ...prev, [booking._id]: null }));
+      setLoadingStates((prev) => ({ ...prev, [selectedBooking._id]: null }));
     }
   };
 
-  const declineBooking = async (booking) => {
-    try {
-      setLoadingStates((prev) => ({ ...prev, [booking._id]: "declining" }));
-      console.log("Declining booking:", booking._id);
-      const response = await put(`bookings/rider/${booking._id}/reject`, {
-        rejectionReason: "Vehicle not available",
-      });
-      console.log("Booking declined:", response.data);
-      dispatch(
-        setBookingStatus({ bookingId: booking._id, status: "declined" })
-      );
-      await fetchBookings();
-    } catch (error) {
-      console.error("Error declining booking:", error);
-    } finally {
-      setLoadingStates((prev) => ({ ...prev, [booking._id]: null }));
-    }
+  const openStopModal = (booking, vehicleId) => {
+    setSelectedBooking(booking);
+    setSelectedVehicleId(vehicleId);
+    setModalVisible(true);
   };
 
   const setupLocationTracking = async () => {
@@ -173,56 +172,12 @@ export default function HomeScreen() {
     setupLocationTracking();
   }, []);
 
-
-// update location but its not working 
-
-
-  const updatelocationn = async (booking) => {
-    try {
-      console.log("location =========> booking:", booking._id);
-      const response = await put(`bookings/rider/${booking._id}/location`, {
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-      });
-      console.log("Location updated successfully:", response.data);
-    } catch (error) {
-      console.error("Error updating location:", error);
-    }
-  };
-
-  // useEffect(() => {
-  //   updatelocationn();
-  // }, []);
-
-
-
-
-
   const renderBookingCard = ({ item }) => {
-    const pickupDate = new Date(item.pickupDateTime).toLocaleDateString();
-    const pickupTime = new Date(item.pickupDateTime).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-    const getButtonState = () => {
-      const status = bookingStatuses[item._id];
-      const isLoading = loadingStates[item._id];
-
-      if (status === "completed") {
-        return "completed";
-      } else if (status === "started") {
-        return "complete";
-      } else if (status === "accepted") {
-        return "start";
-      } else if (status === "declined") {
-        return "declined";
-      } else {
-        return "pending";
-      }
-    };
-
-    const buttonState = getButtonState();
+    const service = item.serviceDetail.services[0];
+    const pickupDate = new Date(service.startDate).toLocaleDateString();
+    const pickupTime = service.pickupTime;
+    const vehicle = item.vehicleId;
+    const status = bookingStatuses[item._id] || item.rideStatus;
 
     return (
       <TouchableOpacity
@@ -237,7 +192,7 @@ export default function HomeScreen() {
                 <View>
                   <Text style={styles.labelText}>Pickup</Text>
                   <Text style={styles.valueText} numberOfLines={1}>
-                    {item.pickupLocation?.slice(0, 26) || "N/A"}
+                    {service.pickupLocation.address.slice(0, 26) || "N/A"}
                   </Text>
                 </View>
               </View>
@@ -247,12 +202,12 @@ export default function HomeScreen() {
                 <View>
                   <Text style={styles.labelText}>Dropoff</Text>
                   <Text style={styles.valueText} numberOfLines={1}>
-                    {item.dropoffLocation?.slice(0, 26) || "N/A"}
+                    {service.dropoffLocation.address.slice(0, 26) || "N/A"}
                   </Text>
                 </View>
               </View>
             </View>
-            <Text style={styles.price}>${item.estimatedPrice || "N/A"}</Text>
+            <Text style={styles.price}>${item.serviceDetail.estimatedPrice || "N/A"}</Text>
           </View>
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>
@@ -264,35 +219,21 @@ export default function HomeScreen() {
               {pickupTime}
             </Text>
           </View>
-
+          <View style={styles.metaRow}>
+            <Text style={styles.metaText}>
+              <Text style={styles.bold}>Customer: </Text>
+              {item.customerDetails.name}
+            </Text>
+            <Text style={styles.metaText}>
+              <Text style={styles.bold}>Vehicle: </Text>
+              {`${vehicle.specs.make} ${vehicle.specs.model}`}
+            </Text>
+          </View>
           <View style={styles.actionRow}>
-            {buttonState === "completed" && (
-              <TouchableOpacity
-                style={[styles.button, styles.completedButton]}
-                disabled
-              >
-                <Text style={styles.buttonText}>Ride is Completed</Text>
-              </TouchableOpacity>
-            )}
-
-            {buttonState === "complete" && (
-              <TouchableOpacity
-                style={[styles.button, styles.completeButton]}
-                onPress={() => completeRide(item)}
-                disabled={loadingStates[item._id] === "completing"}
-              >
-                {loadingStates[item._id] === "completing" ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>Complete</Text>
-                )}
-              </TouchableOpacity>
-            )}
-
-            {buttonState === "start" && (
+            {status === "not-started" && (
               <TouchableOpacity
                 style={[styles.button, styles.startButton]}
-                onPress={() => startRide(item)}
+                onPress={() => startRide(item, vehicle._id)}
                 disabled={loadingStates[item._id] === "starting"}
               >
                 {loadingStates[item._id] === "starting" ? (
@@ -302,46 +243,39 @@ export default function HomeScreen() {
                 )}
               </TouchableOpacity>
             )}
-
-            {buttonState === "declined" && (
-              <TouchableOpacity
-                style={[styles.button, styles.declinedButton]}
-                disabled
-              >
-                <Text style={[styles.buttonText, styles.declinedText]}>
-                  Declined
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {buttonState === "pending" && (
+            {status === "started" && (
               <>
                 <TouchableOpacity
-                  style={[styles.button, styles.acceptButton]}
-                  onPress={() => acceptBooking(item)}
-                  disabled={loadingStates[item._id] === "accepting"}
+                  style={[styles.button, styles.stopButton]}
+                  onPress={() => openStopModal(item, vehicle._id)}
+                  disabled={loadingStates[item._id] === "addingStop"}
                 >
-                  {loadingStates[item._id] === "accepting" ? (
+                  {loadingStates[item._id] === "addingStop" ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={styles.buttonText}>Accept</Text>
+                    <Text style={styles.buttonText}>Stop At</Text>
                   )}
                 </TouchableOpacity>
-                
                 <TouchableOpacity
-                  style={[styles.button, styles.declineButton]}
-                  onPress={() => declineBooking(item)}
-                  disabled={loadingStates[item._id] === "declining"}
+                  style={[styles.button, styles.completeButton]}
+                  onPress={() => completeRide(item, vehicle._id)}
+                  disabled={loadingStates[item._id] === "completing"}
                 >
-                  {loadingStates[item._id] === "declining" ? (
-                    <ActivityIndicator color="#E74C3C" />
+                  {loadingStates[item._id] === "completing" ? (
+                    <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={[styles.buttonText, styles.declineText]}>
-                      Decline
-                    </Text>
+                    <Text style={styles.buttonText}>Complete</Text>
                   )}
                 </TouchableOpacity>
               </>
+            )}
+            {status === "completed" && (
+              <TouchableOpacity
+                style={[styles.button, styles.completedButton]}
+                disabled
+              >
+                <Text style={styles.buttonText}>Completed</Text>
+              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -370,7 +304,6 @@ export default function HomeScreen() {
           <Feather name="bell" size={22} color="white" />
         </TouchableOpacity>
       </View>
-     
 
       <View style={styles.mapContainer}>
         <MapView
@@ -397,11 +330,11 @@ export default function HomeScreen() {
             <Marker
               key={booking._id}
               coordinate={{
-                latitude: booking.pickupLatitude,
-                longitude: booking.pickupLongitude,
+                latitude: booking.serviceDetail.services[0].pickupLocation.latitude,
+                longitude: booking.serviceDetail.services[0].pickupLocation.longitude,
               }}
               title="Pickup Location"
-              description={booking.pickupLocation}
+              description={booking.serviceDetail.services[0].pickupLocation.address}
               pinColor="#FF0000"
             />
           ))}
@@ -421,7 +354,57 @@ export default function HomeScreen() {
           }
         />
       </View>
-      
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add Stop</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Location"
+              value={stopLocation}
+              onChangeText={setStopLocation}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Description"
+              value={stopDescription}
+              onChangeText={setStopDescription}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Additional Amount"
+              value={additionalAmount}
+              onChangeText={setAdditionalAmount}
+              keyboardType="numeric"
+            />
+            <View style={styles.modalButtonRow}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.submitButton]}
+                onPress={addStop}
+                disabled={loadingStates[selectedBooking?._id] === "addingStop"}
+              >
+                {loadingStates[selectedBooking?._id] === "addingStop" ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Submit</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -553,23 +536,23 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     flex: 1,
   },
-  acceptButton: {
+  startButton: {
     backgroundColor: "#1F5546",
   },
-  declineButton: {
-    backgroundColor: "#DADADA",
-  },
-  startButton: {
-    backgroundColor: "#FF9500",
+  stopButton: {
+    backgroundColor: "#E74C3C",
   },
   completeButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#1F5546",
   },
   completedButton: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#1F5546",
   },
-  declinedButton: {
-    backgroundColor: "#FF0000",
+  submitButton: {
+    backgroundColor: "#1F5546",
+  },
+  cancelButton: {
+    backgroundColor: "#DADADA",
   },
   buttonText: {
     color: "#fff",
@@ -577,16 +560,41 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
-  declineText: {
-    color: "#333",
-  },
-  declinedText: {
-    color: "#fff",
-  },
   emptyText: {
     color: "#4D4D4D",
     textAlign: "center",
     fontSize: 14,
     padding: 20,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 20,
+    width: "80%",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#D3D3D3",
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 10,
+  },
+  modalButtonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+    marginTop: 20,
   },
 });

@@ -43,5 +43,4 @@
         />
     <service android:name="com.voximplant.foregroundservice.VIForegroundService"/>
   </application>
-
 </manifest>

@@ -14,8 +14,6 @@ import { AntDesign } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import FlashMessage from "react-native-flash-message";
 import Icons from "../../../components/Icons";
-
-// Import custom components
 import CustomButton from "../../../components/CustomButton";
 import CustomInput from "../../../components/CustomInput";
 import CustomText from "../../../components/CustomText";
@@ -24,7 +22,7 @@ import UploadImageUI from "../../../components/UploadImageUI";
 import Dropdown from "../../../components/Dropdown";
 import OTPComponent from "../../../components/OTP";
 import fonts from "../../../assets/fonts";
-import { post,get } from "../../../services/ApiRequest";
+import { post, get } from "../../../services/ApiRequest";
 import { showSuccess, showError } from "../../../utils/toast";
 import { COLORS } from "../../../utils/COLORS";
 
@@ -33,8 +31,11 @@ const Signup = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [otp, setOtp] = useState("");
   const [receivedOtp, setReceivedOtp] = useState("");
-  const [verificationToken, setVerificationToken] = useState("");
-  const [cityTouched, setCityTouched] = useState(false); // Track city dropdown interaction
+  const [phoneOtp, setphoneOtp] = useState("");
+  const [verificationToken, setVerificationToken] = useState(null);
+  const [phoneverificationToken, setphoneVerificationToken] = useState(null);
+  const [verificationType, setVerificationType] = useState("email"); // Added to track email or phone OTP
+  const [cityTouched, setCityTouched] = useState(false);
   const scrollViewRef = React.useRef(null);
 
   const [documents, setDocuments] = useState({
@@ -54,16 +55,13 @@ const Signup = ({ navigation }) => {
     }));
   };
 
-  // City options for dropdown
   const cityOptions = [
-    // { label: "Select City", value: "" },
     { label: "Kuala Lumpur", value: "kuala_lumpur" },
     { label: "Penang", value: "penang" },
     { label: "Johor Bahru", value: "johor_bahru" },
     { label: "Ipoh", value: "ipoh" },
   ];
 
-  // Main form state
   const [state, setState] = useState({
     firstName: "",
     lastName: "",
@@ -85,10 +83,8 @@ const Signup = ({ navigation }) => {
     deriverType: "",
   });
 
-  // Documents state to store uploaded image URLs
   const [errors, setErrors] = useState({});
 
-  // Bank options
   const bankOptions = [
     { label: "Select Bank", value: "" },
     { label: "Maybank", value: "maybank" },
@@ -98,13 +94,10 @@ const Signup = ({ navigation }) => {
     { label: "Hong Leong Bank", value: "hong_leong" },
   ];
 
-
   const updateState = (field, value) => {
     console.log(`Updating ${field} with value:`, value);
     setState((prev) => {
       const newState = { ...prev, [field]: value };
-      // console.log(`Updated state for ${field}:`, newState[field]);
-      // console.log("Full updated state:", newState);
       return newState;
     });
 
@@ -112,13 +105,11 @@ const Signup = ({ navigation }) => {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
-        // console.log(`Cleared error for ${field}`);
         return newErrors;
       });
     }
   };
 
-  // Validation function
   const validateStep = (stepNumber) => {
     console.log(`Validating step ${stepNumber}`);
     console.log("Current state during validation:", state);
@@ -162,35 +153,25 @@ const Signup = ({ navigation }) => {
       if (!state.phoneNumber.trim()) {
         newErrors.phoneNumber = "Phone number is required";
         hasErrors = true;
-      } else if (!/^\d{10,12}$/.test(state.phoneNumber.trim())) {
-        newErrors.phoneNumber = "Invalid phone number (10-12 digits)";
+      } else if (!/^\d{10,13}$/.test(state.phoneNumber.trim())) {
+        newErrors.phoneNumber = "Invalid phone number (10-13 digits)";
         hasErrors = true;
       }
-
-      console.log("Validating city - current value:", state.selectedCity);
-      if (
-        cityTouched &&
-        (!state.selectedCity || state.selectedCity.length === 0)
-      ) {
+      if (cityTouched && (!state.selectedCity || state.selectedCity.length === 0)) {
         console.log("City validation failed - no city selected");
         newErrors.selectedCity = "Please select your city";
         hasErrors = true;
-      } else {
-        console.log(
-          "City validation passed - selected city:",
-          state.selectedCity
-        );
       }
     }
 
-    if (stepNumber === 2) {
+    if (stepNumber === 2 || stepNumber === 3) {
       if (!otp.trim() || otp.length !== 6 || !/^\d{6}$/.test(otp.trim())) {
         newErrors.otp = "Please enter a valid 6-digit OTP";
         hasErrors = true;
       }
     }
 
-    if (stepNumber === 3) {
+    if (stepNumber === 4) {
       if (!state.accountNumber.trim()) {
         newErrors.accountNumber = "Account number is required";
         hasErrors = true;
@@ -198,13 +179,10 @@ const Signup = ({ navigation }) => {
         newErrors.accountNumber = "Invalid account number (10-16 digits)";
         hasErrors = true;
       }
-
-
       if (!documents.icFront || !documents.icBack) {
         newErrors.ic = "Both IC front and back are required";
         hasErrors = true;
       }
-
       if (!documents.licenseFront || !documents.licenseBack) {
         newErrors.license = "Both license front and back are required";
         hasErrors = true;
@@ -214,6 +192,17 @@ const Signup = ({ navigation }) => {
     console.log("Validation errors set:", newErrors);
     setErrors(newErrors);
     return hasErrors;
+  };
+
+  const validateDocuments = () => {
+    let docErrors = {};
+    if (!documents.icFront || !documents.icBack) {
+      docErrors.ic = "Both IC front and back are required";
+    }
+    if (!documents.licenseFront || !documents.licenseBack) {
+      docErrors.license = "Both license front and back are required";
+    }
+    return docErrors;
   };
 
   const handleCheckEmail = async () => {
@@ -234,22 +223,18 @@ const Signup = ({ navigation }) => {
     }
   };
 
-  // Handle Send OTP verification
   const Sendotp = async () => {
     try {
       await handleCheckEmail();
-
       setLoading(true);
       const payload = {
         email: state.email,
         purpose: "registration",
         name: state.firstName + " " + state.lastName,
       };
-
       console.log("Send OTP Request Payload:", payload);
       const response = await post("auth/send-verification-otp", payload);
       console.log("Send OTP API Response:", response.data);
-
       setReceivedOtp(response.data.data.otp);
       showSuccess(`OTP sent to your email: ${response.data.data.otp}`);
       return true;
@@ -266,35 +251,55 @@ const Signup = ({ navigation }) => {
     }
   };
 
-  // Handle Verify OTP
+  const Sendphoneotp = async () => {
+    try {
+      setLoading(true);
+      const payload = {
+        phone: state. phoneNumber,
+        purpose: "registration",
+        name: state.firstName + " " + state.lastName,
+      };
+      console.log("Send OTP phone Request Payload:", payload);
+      const response = await post("auth/send-phone-verification-otp", payload);
+      console.log("Send OTP phone API Response:", response.data);
+      setphoneOtp(response.data.data.otp);
+      showSuccess(`OTP sent to your phone number: ${response.data.data.otp}`);
+      return true;
+    } catch (error) {
+      console.error("Send OTP phone Error:", {
+        response: error.response?.data.message
+      });
+      const errorMessage =
+        error.response?.data?.message || error.message || "Failed to sendphone OTP";
+      showError(errorMessage);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const Verifyotp = async () => {
     try {
       if (!otp || otp.length !== 6) {
         showError("Please enter a valid 6-digit OTP");
         return false;
       }
-
       setLoading(true);
-      console.log('Verifying OTP...');
-      console.log('Email:', state.email);
-      console.log('OTP entered:', otp);
-      
+      console.log("Verifying OTP...");
+      console.log("Email:", state.email);
+      console.log("OTP entered:", otp);
       const payload = {
         email: state.email,
         purpose: "registration",
         otp,
       };
-
       console.log("Verify OTP Request Payload:", payload);
       const response = await post("auth/verify-otp", payload);
       console.log("Verify OTP API Response:", response.data);
-
       if (response.data && response.data.data && response.data.data.verificationToken) {
-        setVerificationToken(response.data.data.verificationToken);
-        await AsyncStorage.setItem(
-          "verificationToken",
-          response.data.data.verificationToken
-        );
+   const token=     response.data?.data?.verificationToken
+   setVerificationToken(token)
+       console.log("emailtoken====>",token)
         showSuccess("OTP verified successfully!");
         return true;
       } else {
@@ -316,25 +321,62 @@ const Signup = ({ navigation }) => {
     }
   };
 
-  // Handle signup submission
+  const Verifyphoneotp = async () => {
+    try {
+      if (!otp || otp.length !== 6) {
+        showError("Please enter a valid 6-digit OTP");
+        return false;
+      }
+      setLoading(true);
+      console.log("Verifying Phone OTP...");
+      console.log("Phone:", state.phoneNumber);
+      console.log("OTP entered:", otp);
+      const payload = {
+        phone: state.phoneNumber,
+        purpose: "registration",
+        otp,
+      };
+      console.log("Verify OTP Request Payload:", payload);
+      const response = await post("auth/verify-phone-otp", payload);
+      console.log("Verify OTP API Response:", response.data);
+      if (response.data && response.data.data && response.data.data.verificationToken) {
+        const tokenPhone=     response.data?.data?.verificationToken
+        setphoneVerificationToken(tokenPhone)
+        console.log("phonetoken====>",tokenPhone) 
+   
+        showSuccess("Phone OTP verified successfully!");
+        return true;
+      } else {
+        throw new Error("Invalid response from server");
+      }
+    } catch (error) {
+      console.error("Verify OTP Error:", {
+        error: error.message,
+        response: error.response?.data,
+      });
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to verify OTP. Please try again.";
+      showError(errorMessage);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const submitSignup = async () => {
     try {
-      // Validate form fields
-      const validationErrors = validateStep(3);
-      if (validationErrors) {
-        setErrors(validationErrors);
-        return;
-      }
-
-      // Prepare the user data object
+      setLoading(true);
       const userData = {
         email: state.email.toLowerCase().trim(),
         phone: state.phoneNumber.startsWith("")
           ? state.phoneNumber
-          : `+${state.phoneNumber}`,
+          : `${state.phoneNumber}`,
         name: `${state.firstName} ${state.lastName}`.trim(),
         password: state.password,
-        verificationToken: verificationToken,
+        emailVerificationToken: verificationToken,
+        phoneVerificationToken: phoneverificationToken,
         driverType: state.deriverType,
         personalIdFrontUrl: documents.icFront,
         personalIdBackUrl: documents.icBack,
@@ -354,11 +396,7 @@ const Signup = ({ navigation }) => {
         },
         isCarOwner: false,
       };
-
-      console.log("Selected cities for operations:", state.selectedCity);
-      console.log("Navigating to Vehicle with data:", userData);
-
-      // Navigate to Vehicle screen with the user data
+      console.log("Submitting signup with data:", userData);
       navigation.navigate("Vehicle", { userData });
     } catch (error) {
       console.error("Error in signup:", error);
@@ -370,7 +408,6 @@ const Signup = ({ navigation }) => {
     }
   };
 
-  // Handle resend OTP
   const handleResendOTP = async () => {
     try {
       setLoading(true);
@@ -379,7 +416,6 @@ const Signup = ({ navigation }) => {
         purpose: "registration",
         name: state.firstName + " " + state.lastName,
       };
-
       console.log("Resend OTP Request Payload:", payload);
       const response = await post("auth/send-verification-otp", payload);
       console.log("Resend OTP API Response:", response);
@@ -398,12 +434,10 @@ const Signup = ({ navigation }) => {
     }
   };
 
-  // Handle next step
   const handleNext = async () => {
     console.log("Handle next called for step:", step);
     console.log("Current state before validation:", state);
 
-    // Validate current step
     const hasErrors = validateStep(step);
     if (hasErrors) {
       console.log("Validation errors:", errors);
@@ -422,30 +456,40 @@ const Signup = ({ navigation }) => {
       if (step === 1) {
         const otpSent = await Sendotp();
         if (otpSent) {
+          setVerificationType("email");
           setStep(2);
           setErrors({});
-          if (scrollViewRef.current) {
-            scrollViewRef.current.scrollTo({ y: 0, animated: true });
-          }
+          scrollToTop();
         }
       } else if (step === 2) {
-        console.log('Verifying OTP and moving to step 3...');
-        const isOtpVerified = await Verifyotp();
-        console.log('OTP verification result:', isOtpVerified);
-        
-        if (isOtpVerified) {
-          console.log('OTP verified, moving to step 3');
-          setStep(3);
-          setErrors({});
-          if (scrollViewRef.current) {
-            scrollViewRef.current.scrollTo({ y: 0, animated: true });
+        if (verificationType === "email") {
+          const isOtpVerified = await Verifyotp();
+          if (isOtpVerified) {
+            const phoneOtpSent = await Sendphoneotp();
+            if (phoneOtpSent) {
+              setVerificationType("phone");
+              setOtp("");
+              scrollToTop();
+            }
           }
-        } else {
-          console.log('OTP verification failed');
-          showError("OTP verification failed. Please try again.");
+        } else if (verificationType === "phone") {
+          const isPhoneVerified = await Verifyphoneotp();
+          if (isPhoneVerified) {
+            setStep(4); // Skip to step 4 (document upload) as per step progression
+            setErrors({});
+            scrollToTop();
+          }
         }
-      } else if (step === 3) {
-        // Handle final submission
+      } else if (step === 4) {
+        const docErrors = validateDocuments();
+        if (Object.keys(docErrors).length > 0) {
+          setErrors(docErrors);
+          Alert.alert(
+            "Validation Error",
+            "Please upload all required documents."
+          );
+          return;
+        }
         await submitSignup();
       }
     } catch (error) {
@@ -454,12 +498,17 @@ const Signup = ({ navigation }) => {
     }
   };
 
-  // Handle signup
+  const scrollToTop = () => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: 0, animated: true });
+    }
+  };
+
   const handleSignup = async () => {
     console.log("Handle signup called");
     console.log("Current state before final validation:", state);
 
-    const hasErrors = validateStep(3);
+    const hasErrors = validateStep(4);
     if (hasErrors) {
       console.log("Validation errors on signup:", errors);
       Alert.alert(
@@ -472,14 +521,12 @@ const Signup = ({ navigation }) => {
     await submitSignup();
   };
 
-  // Render progress bar
   const renderProgressBar = () => (
     <View style={styles.progressContainer}>
-      <View style={[styles.progressBar, { width: `${(step / 3) * 100}%` }]} />
+      <View style={[styles.progressBar, { width: `${(step / 4) * 100}%` }]} />
     </View>
   );
 
-  // Step rendering functions
   const renderStep1 = () => (
     <View style={styles.stepContainer}>
       <ScrollView
@@ -487,7 +534,7 @@ const Signup = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollViewContent}
       >
-        <Text style={styles.step1}>Step 1 of 3</Text>
+        <Text style={styles.step1}>Step 1 of 4</Text>
         <Text style={styles.stepTitle}>Nice to meet you!</Text>
         <Text style={styles.stepSubtitle}>Please tell us more about you</Text>
 
@@ -544,7 +591,6 @@ const Signup = ({ navigation }) => {
         <CustomText
           label="First Name"
           fontSize={15}
-          // marginTop={30}
           fontWeight="500"
         />
         <CustomInput
@@ -559,7 +605,6 @@ const Signup = ({ navigation }) => {
         <CustomText
           label="Last Name"
           fontSize={15}
-          // marginTop={15}
           fontWeight="500"
         />
         <CustomInput
@@ -574,7 +619,6 @@ const Signup = ({ navigation }) => {
         <CustomText
           label="Email Address"
           fontSize={15}
-          // marginTop={15}
           fontWeight="500"
         />
         <CustomInput
@@ -598,25 +642,28 @@ const Signup = ({ navigation }) => {
           error={errors.phoneNumber}
           containerStyle={errors.phoneNumber ? styles.errorBorder : {}}
         />
-         <CustomText label="Operations" fontSize={15} fontWeight="500" />
-           <View style={styles.dropdownContainer}>
+        <CustomText label="Operations" fontSize={15} fontWeight="500" />
+        <View style={styles.dropdownContainer}>
           <Dropdown
             items={cityOptions}
             multiple={true}
             defaultValue={state.selectedCity}
             onSelectItem={(selectedItems) => {
               console.log("Selected Operations:", selectedItems);
-              // If it's an array, extract just the values
               const values = Array.isArray(selectedItems)
                 ? selectedItems.map((item) => item.value)
                 : [];
               console.log("Updating selectedCity with values:", values);
               updateState("selectedCity", values);
+              setCityTouched(true);
             }}
             placeholder="Select Operations"
             style={styles.dropdown}
             dropDownContainerStyle={styles.dropdownList}
           />
+          {errors.selectedCity && (
+            <Text style={styles.errorText}>{errors.selectedCity}</Text>
+          )}
         </View>
 
         <CustomText label="Password" fontSize={15} fontWeight="500" />
@@ -640,9 +687,6 @@ const Signup = ({ navigation }) => {
           error={errors.confirmPassword}
           containerStyle={errors.confirmPassword ? styles.errorBorder : {}}
         />
-
-       
-     
       </ScrollView>
 
       <View style={styles.buttonContainer}>
@@ -666,7 +710,7 @@ const Signup = ({ navigation }) => {
       >
         <View style={styles.otpContainer}>
           <CustomText
-            label={`Enter 6-digit code we just texted to your phone number ${state.phoneNumber}`}
+            label={`Enter 6-digit code we just sent to your email ${state.email}`}
             fontFamily={fonts.medium}
             marginBottom={30}
             marginTop={10}
@@ -718,6 +762,60 @@ const Signup = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollViewContent}
       >
+        <View style={styles.otpContainer}>
+          <CustomText
+            label={`Enter 6-digit code we just sent to your phone number ${state.phoneNumber}`}
+            fontFamily={fonts.medium}
+            marginBottom={30}
+            marginTop={10}
+            lineHeight={24}
+            fontSize={16}
+            textAlign="center"
+          />
+
+          <OTPComponent value={otp} setValue={setOtp} />
+
+          {__DEV__ && phoneOtp ? (
+            <View>
+              <Text style={styles.devOtpText}>OTP is {phoneOtp}</Text>
+            </View>
+          ) : null}
+
+          {errors.otp && <Text style={styles.errorText}>{errors.otp}</Text>}
+
+          <View style={styles.resendContainer}>
+            <TouchableOpacity
+              onPress={handleResendOTP}
+              accessibilityLabel="Resend OTP"
+              disabled={loading}
+            >
+              <Text style={[styles.resendText, loading && styles.disabledText]}>
+                Resend code
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+
+      <View style={styles.buttonContainer}>
+        <CustomButton
+          title="Verify"
+          onPress={handleNext}
+          loading={loading}
+          disabled={loading}
+          customStyle={styles.button}
+        />
+      </View>
+    </View>
+  );
+
+  const renderStep4 = () => (
+    <View style={styles.stepContainer}>
+      <ScrollView
+        ref={scrollViewRef}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollViewContent}
+      >
         <Text style={styles.documentsTitle}>Upload Documents</Text>
 
         <View style={styles.documentSection}>
@@ -726,7 +824,7 @@ const Signup = ({ navigation }) => {
             <View style={styles.uploadItem}>
               <Text style={styles.uploadLabel}>Front</Text>
               <UploadImageUI
-                label="Upload Profile Picture"
+                label="ID Front (Required)"
                 onUploadComplete={handleDocumentUpload("icFront")}
                 initialImage={documents.icFront}
               />
@@ -775,7 +873,7 @@ const Signup = ({ navigation }) => {
             <Text style={styles.documentButtonText}>PSV License Front</Text>
             <UploadImageUI
               onUploadComplete={handleDocumentUpload("psvLicense")}
-              label="PSV License front"
+              label="PSV License Front"
               compact={true}
               initialImage={documents.psvLicense}
             />
@@ -800,7 +898,6 @@ const Signup = ({ navigation }) => {
               defaultValue={state.selectedBank}
               onSelectItem={(selectedItem) => {
                 console.log("Selected Item:", selectedItem);
-                // Extract only the value if selectedItem is an object
                 const value =
                   typeof selectedItem === "object" && selectedItem.value
                     ? selectedItem.value
@@ -812,7 +909,6 @@ const Signup = ({ navigation }) => {
               style={styles.dropdown}
               dropDownContainerStyle={styles.dropdownList}
             />
-
             {errors.selectedBank && (
               <Text style={[styles.errorText, { fontWeight: "bold" }]}>
                 {errors.selectedBank}
@@ -840,7 +936,7 @@ const Signup = ({ navigation }) => {
       <View style={styles.buttonContainer}>
         <CustomButton
           title="Complete Registration"
-          onPress={handleSignup}
+          onPress={handleNext}
           loading={loading}
           disabled={loading}
           customStyle={styles.button}
@@ -849,7 +945,6 @@ const Signup = ({ navigation }) => {
     </View>
   );
 
-  // Render step
   const renderStep = () => {
     switch (step) {
       case 1:
@@ -858,6 +953,8 @@ const Signup = ({ navigation }) => {
         return renderStep2();
       case 3:
         return renderStep3();
+      case 4:
+        return renderStep4();
       default:
         return null;
     }
@@ -876,6 +973,10 @@ const Signup = ({ navigation }) => {
               onPress={() => {
                 if (step > 1) {
                   setStep(step - 1);
+                  if (step === 3) {
+                    setVerificationType("email");
+                    setOtp("");
+                  }
                 } else {
                   navigation.goBack();
                 }
@@ -884,7 +985,7 @@ const Signup = ({ navigation }) => {
             >
               <AntDesign name="left" size={24} color="#000" />
             </TouchableOpacity>
-            <Text style={styles.stepText}>Step {step} of 3</Text>
+            <Text style={styles.stepText}>Step {step} of 4</Text>
           </View>
           {renderProgressBar()}
           <View style={styles.stepContent}>{renderStep()}</View>
@@ -898,13 +999,10 @@ const Signup = ({ navigation }) => {
 const styles = StyleSheet.create({
   scrollViewContent: {
     flexGrow: 1,
-    // paddingBottom: 30,
   },
-
   deriverContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    // marginTop: 20,
     marginBottom: 20,
   },
   deriverButton: {
@@ -934,7 +1032,6 @@ const styles = StyleSheet.create({
   icon: {
     marginRight: 5,
   },
-
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
@@ -995,7 +1092,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   dropdownContainer: {
-    // marginTop: 10,
     marginBottom: 10,
   },
   errorBorder: {
