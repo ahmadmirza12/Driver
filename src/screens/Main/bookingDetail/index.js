@@ -1,231 +1,593 @@
-import { AntDesign, MaterialIcons } from "@expo/vector-icons";
-import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import { AntDesign, MaterialIcons, Ionicons } from "@expo/vector-icons";
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from "react-native";
 import React, { useState } from "react";
-import CustomButton from "../../../components/CustomButton";
-import { put } from "../../../services/ApiRequest";
 import { useNavigation } from "expo-router";
 
 const BookingDetail = ({ route }) => {
-  const [loading, setloading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { item } = route.params;
   const navigation = useNavigation();
-  // Format date and time
-  const pickupDate = new Date(item.pickupDateTime).toLocaleDateString();
-  const pickupTime = new Date(item.pickupDateTime).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 
- 
+  const service = item.serviceDetail.services[0];
+  const pickupDate = new Date(service.startDate).toLocaleDateString("en-US", {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+  const pickupTime = service.pickupTime || "Not specified";
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'confirmed':
+        return '#10B981';
+      case 'pending':
+        return '#F59E0B';
+      case 'cancelled':
+        return '#EF4444';
+      case 'completed':
+        return '#1F5546';
+      default:
+        return '#6B7280';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'confirmed':
+        return 'checkmark-circle';
+      case 'pending':
+        return 'time';
+      case 'cancelled':
+        return 'close-circle';
+      case 'completed':
+        return 'checkmark-done-circle';
+      default:
+        return 'information-circle';
+    }
+  };
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <AntDesign name="arrowleft" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Booking Details</Text>
+        <View style={styles.headerRight} />
       </View>
-      <View style={styles.card}>
-        <View style={styles.cardTop}>
-          <View>
-            <View style={styles.locationRow}>
-              <MaterialIcons name="location-on" size={19} color="#1F5546" />
-              <View style={{ flexDirection: "column" }}>
-                <Text style={styles.labelText}>Pickup</Text>
-                <Text style={styles.valueText}>
-                  {item.pickupLocation || "Location not specified"}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.dotsLine} />
-            <View style={styles.locationRow}>
-              <MaterialIcons name="location-on" size={19} color="#1F5546" />
-              <View style={{ flexDirection: "column" }}>
-                <Text style={styles.labelText}>Drop Off</Text>
-                <Text style={styles.valueText}>
-                  {item.dropoffLocation || "Location not specified"}
-                </Text>
-              </View>
-            </View>
-          </View>
-          <Text style={styles.price}>${item.estimatedPrice || "N/A"}</Text>
-        </View>
-        <View style={styles.metaRow}>
-          <Text style={styles.metaText}>
-            <Text style={{ fontWeight: "bold" }}>Date: </Text>
-            {pickupDate}
-          </Text>
-          <Text style={styles.metaText}>
-            <Text style={{ fontWeight: "bold" }}>Time: </Text>
-            {pickupTime}
-          </Text>
-        </View>
-        <View style={styles.detailSection}>
-          <Text style={styles.sectionTitle}>Booking Information</Text>
-          {/* <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Booking ID:</Text>
-            <Text style={styles.detailValue}>{item._id}</Text>
-          </View> */}
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Service Type:</Text>
-            <Text style={styles.detailValue}>{item.serviceType}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Vehicle Type:</Text>
-            <Text style={styles.detailValue}>{item.vehicleType}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Vehicle Brand:</Text>
-            <Text style={styles.detailValue}>{item.vehicleBrandName}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Add-on Services:</Text>
-            <Text style={styles.detailValue}>
-              {item.addOnServices?.join(", ") || "None"}
-            </Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Flight Number:</Text>
-            <Text style={styles.detailValue}>{item.flightNumber || "N/A"}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Status:</Text>
-            <Text style={styles.detailValue}>{item.status}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Passenger Count:</Text>
-            <Text style={styles.detailValue}>{item.passengerCount}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Payment Status:</Text>
-            <Text style={styles.detailValue}>{item.paymentStatus}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Special Instructions:</Text>
-            <Text style={styles.detailValue}>
-              {item.specialInstructions || "None"}
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Status Card */}
+        <View style={styles.statusCard}>
+          <View style={styles.statusRow}>
+            <Ionicons 
+              name={getStatusIcon(item.rideStatus)} 
+              size={24} 
+              color={getStatusColor(item.rideStatus)} 
+            />
+            <Text style={[styles.statusText, { color: getStatusColor(item.rideStatus) }]}>
+              {item.rideStatus || "Unknown"}
             </Text>
           </View>
         </View>
-        <View style={styles.detailSection}>
-          <Text style={styles.sectionTitle}>Customer Information</Text>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Name:</Text>
-            <Text style={styles.detailValue}>{item.customerId.name}</Text>
+
+        {/* Route Card */}
+        <View style={styles.routeCard}>
+          <View style={styles.routeHeader}>
+            <Text style={styles.routeTitle}>Trip Route</Text>
+            <Text style={styles.price}>${item.serviceDetail.estimatedPrice || "N/A"}</Text>
           </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Email:</Text>
-            <Text style={styles.detailValue}>{item.customerId.email}</Text>
+          
+          <View style={styles.routeContainer}>
+            <View style={styles.routeLeft}>
+              <View style={styles.locationPoint} />
+              <View style={styles.routeLine} />
+              <View style={[styles.locationPoint, styles.destinationPoint]} />
+            </View>
+            
+            <View style={styles.routeDetails}>
+              <View style={styles.locationContainer}>
+                <Text style={styles.locationLabel}>PICKUP LOCATION</Text>
+                <Text style={styles.locationText}>
+                  {service.pickupLocation.address || "Location not specified"}
+                </Text>
+              </View>
+              
+              <View style={styles.locationContainer}>
+                <Text style={styles.locationLabel}>DROP OFF LOCATION</Text>
+                <Text style={styles.locationText}>
+                  {service.dropoffLocation.address || "Location not specified"}
+                </Text>
+              </View>
+            </View>
           </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Phone:</Text>
-            <Text style={styles.detailValue}>{item.customerId.phone}</Text>
+
+          <View style={styles.tripMeta}>
+            <View style={styles.metaItem}>
+              <Ionicons name="calendar-outline" size={16} color="#1F5546" />
+              <Text style={styles.metaLabel}>Date</Text>
+              <Text style={styles.metaValue}>{pickupDate}</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Ionicons name="time-outline" size={16} color="#1F5546" />
+              <Text style={styles.metaLabel}>Time</Text>
+              <Text style={styles.metaValue}>{pickupTime}</Text>
+            </View>
           </View>
         </View>
-      </View>
+
+        {/* Vehicle Info Card */}
+        <View style={styles.infoCard}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="car-outline" size={20} color="#1F5546" />
+            <Text style={styles.cardTitle}>Vehicle Information</Text>
+          </View>
+          <View style={styles.vehicleInfo}>
+            <Text style={styles.vehicleName}>
+              {`${item.vehicleId.specs.make} ${item.vehicleId.specs.model}` || "N/A"}
+            </Text>
+            <Text style={styles.plateNumber}>{item.vehicleId.specs.plateNumber}</Text>
+          </View>
+          <Text style={styles.vehicleType}>{item.vehicleType || "Standard"}</Text>
+        </View>
+
+        {/* Trip Details Card */}
+        <View style={styles.infoCard}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="information-circle-outline" size={20} color="#1F5546" />
+            <Text style={styles.cardTitle}>Trip Details</Text>
+          </View>
+          <View style={styles.detailsGrid}>
+            <DetailItem 
+              label="Service Type" 
+              value={service.serviceType || "N/A"} 
+              icon="car-sport-outline"
+            />
+            <DetailItem 
+              label="Distance" 
+              value={service.estimatedDistance ? `${service.estimatedDistance} km` : "N/A"} 
+              icon="speedometer-outline"
+            />
+            <DetailItem 
+              label="Duration" 
+              value={service.durationHours ? `${service.durationHours} hours` : "N/A"} 
+              icon="timer-outline"
+            />
+            <DetailItem 
+              label="Flight Number" 
+              value={service.flightNumber || "N/A"} 
+              icon="airplane-outline"
+            />
+          </View>
+          
+          {service.additionalServices && service.additionalServices.length > 0 && (
+            <View style={styles.addonsSection}>
+              <Text style={styles.addonsTitle}>Add-on Services</Text>
+              <View style={styles.addonsContainer}>
+                {service.additionalServices.map((addon, index) => (
+                  <View key={index} style={styles.addonTag}>
+                    <Text style={styles.addonText}>{addon}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Customer Info Card */}
+        <View style={styles.infoCard}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="person-outline" size={20} color="#1F5546" />
+            <Text style={styles.cardTitle}>Customer Information</Text>
+          </View>
+          <View style={styles.customerInfo}>
+            <DetailItem 
+              label="Name" 
+              value={item.customerDetails.name || "N/A"} 
+              icon="person"
+            />
+            <DetailItem 
+              label="Phone" 
+              value={item.customerDetails.phone || "N/A"} 
+              icon="call"
+            />
+            <DetailItem 
+              label="Address" 
+              value={item.customerDetails.address || "N/A"} 
+              icon="location"
+            />
+          </View>
+          
+          {item.customerDetails.specialRequirements && (
+            <View style={styles.specialReqs}>
+              <Text style={styles.specialReqsTitle}>Special Requirements</Text>
+              <Text style={styles.specialReqsText}>
+                {item.customerDetails.specialRequirements}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Pricing Card */}
+        <View style={styles.pricingCard}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="card-outline" size={20} color="#1F5546" />
+            <Text style={styles.cardTitle}>Pricing Details</Text>
+          </View>
+          <View style={styles.pricingRow}>
+            <Text style={styles.pricingLabel}>Base Price</Text>
+            <Text style={styles.pricingValue}>
+              ${(item.serviceDetail.estimatedPrice - item.totalAdditionalAmount) || "N/A"}
+            </Text>
+          </View>
+          <View style={styles.pricingRow}>
+            <Text style={styles.pricingLabel}>Additional Charges</Text>
+            <Text style={styles.pricingValue}>
+              ${item.totalAdditionalAmount || 0}
+            </Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total Amount</Text>
+            <Text style={styles.totalValue}>
+              ${item.serviceDetail.estimatedPrice || "N/A"}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
     </View>
   );
 };
+
+const DetailItem = ({ label, value, icon }) => (
+  <View style={styles.detailItem}>
+    <View style={styles.detailHeader}>
+      <Ionicons name={icon} size={14} color="#6B7280" />
+      <Text style={styles.detailLabel}>{label}</Text>
+    </View>
+    <Text style={styles.detailValue}>{value}</Text>
+  </View>
+);
 
 export default BookingDetail;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E8F6F2",
+    backgroundColor: "#F8FFFE",
   },
   header: {
     backgroundColor: "#1F5546",
-    height: 80,
-    paddingTop: 40,
+    height: 100,
+    paddingTop: 50,
     paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
-    zIndex: 10,
+    justifyContent: "space-between",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.1)",
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "700",
     color: "#fff",
-    marginLeft: 20,
+    flex: 1,
+    textAlign: "center",
   },
-  card: {
+  headerRight: {
+    width: 40,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  statusCard: {
     backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
+    borderRadius: 16,
+    padding: 20,
     margin: 20,
-    elevation: 3,
-  },
-  cardTop: {
+    marginBottom: 12,
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 15,
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
-  locationRow: {
+  statusRow: {
     flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  statusText: {
+    fontSize: 16,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  bookingId: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  routeCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  routeHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  routeTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1F2937",
+  },
+  price: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#1F5546",
+  },
+  routeContainer: {
+    flexDirection: "row",
+    marginBottom: 20,
+  },
+  routeLeft: {
+    alignItems: "center",
+    marginRight: 16,
+    paddingTop: 8,
+  },
+  locationPoint: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#1F5546",
+    borderWidth: 3,
+    borderColor: "#E5F3F0",
+  },
+  destinationPoint: {
+    backgroundColor: "#EF4444",
+    borderColor: "#FEE2E2",
+  },
+  routeLine: {
+    width: 2,
+    height: 40,
+    backgroundColor: "#D1D5DB",
+    marginVertical: 8,
+  },
+  routeDetails: {
+    flex: 1,
+  },
+  locationContainer: {
+    marginBottom: 20,
+  },
+  locationLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#9CA3AF",
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  locationText: {
+    fontSize: 14,
+    color: "#1F2937",
+    lineHeight: 20,
+  },
+  tripMeta: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    padding: 16,
+  },
+  metaItem: {
     alignItems: "center",
     gap: 4,
   },
-  labelText: {
-    fontSize: 8,
-    color: "#9C9C9C",
+  metaLabel: {
+    fontSize: 12,
+    color: "#6B7280",
     fontWeight: "500",
   },
-  valueText: {
-    fontSize: 11,
-    color: "#4D4D4D",
-    marginBottom: 2,
+  metaValue: {
+    fontSize: 14,
+    color: "#1F2937",
+    fontWeight: "600",
   },
-  dotsLine: {
-    borderLeftWidth: 1,
-    borderColor: "#D3D3D3",
-    height: 8,
-    marginLeft: 6,
-    marginVertical: 2,
+  infoCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
-  price: {
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
+  cardTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1F5546",
+    color: "#1F2937",
   },
-  metaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 15,
+  vehicleInfo: {
+    marginBottom: 8,
   },
-  metaText: {
-    fontSize: 10,
-    color: "#333",
+  vehicleName: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 4,
   },
-  detailSection: {
-    marginTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: "#D3D3D3",
-    paddingTop: 10,
-  },
-  sectionTitle: {
+  plateNumber: {
     fontSize: 16,
     fontWeight: "600",
     color: "#1F5546",
-    marginBottom: 10,
+    backgroundColor: "#E5F3F0",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: "flex-start",
   },
-  detailRow: {
+  vehicleType: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 4,
+  },
+  detailsGrid: {
+    gap: 16,
+  },
+  detailItem: {
+    marginBottom: 12,
+  },
+  detailHeader: {
     flexDirection: "row",
-    marginBottom: 8,
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
   },
   detailLabel: {
     fontSize: 12,
+    color: "#6B7280",
     fontWeight: "500",
-    color: "#9C9C9C",
-    width: 120,
   },
   detailValue: {
-    fontSize: 12,
-    color: "#4D4D4D",
-    flex: 1,
+    fontSize: 14,
+    color: "#1F2937",
+    fontWeight: "600",
   },
-  horizantal: {
-    paddingHorizontal: 20,
+  addonsSection: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+  },
+  addonsTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1F2937",
+    marginBottom: 8,
+  },
+  addonsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  addonTag: {
+    backgroundColor: "#E5F3F0",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  addonText: {
+    fontSize: 12,
+    color: "#1F5546",
+    fontWeight: "500",
+  },
+  customerInfo: {
+    gap: 16,
+  },
+  specialReqs: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+  },
+  specialReqsTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1F2937",
+    marginBottom: 8,
+  },
+  specialReqsText: {
+    fontSize: 14,
+    color: "#6B7280",
+    lineHeight: 20,
+    backgroundColor: "#F9FAFB",
+    padding: 12,
+    borderRadius: 8,
+  },
+  pricingCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    elevation: 3,
+    shadowColor: "#1F5546",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5F3F0",
+  },
+  pricingRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  pricingLabel: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  pricingValue: {
+    fontSize: 14,
+    color: "#1F2937",
+    fontWeight: "500",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 12,
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1F2937",
+  },
+  totalValue: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#1F5546",
+  },
+  bottomSpacing: {
+    height: 20,
   },
 });

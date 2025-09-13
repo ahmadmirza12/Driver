@@ -216,7 +216,9 @@ const Vehicle = () => {
         phone: userData.phone || "",
         psvLicenseBackUrl: userData.psvLicenseBackUrl || "",
         psvLicenseFrontUrl: userData.psvLicenseFrontUrl || "",
-        verificationToken: userData.verificationToken || "",
+        // verificationToken: userData.verificationToken || "",
+        emailVerificationToken:userData?. emailVerificationToken ||"",
+        phoneVerificationToken:userData?. phoneVerificationToken ||"",
         isCarOwner: isChecked,
       };
 

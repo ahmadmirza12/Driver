@@ -52,11 +52,11 @@ export default function HomeScreen() {
     try {
       setLoading(true);
       const response = await get("driverbooking/driver/assignments");
-      const bookingData = response.data?.data?.assignments || [];
+      const bookingData = response.data?.data?.bookings || [];
       setBookings(bookingData);
 
       const statuses = bookingData.reduce((acc, booking) => {
-        acc[booking._id] = booking.vehicles[0].rideStatus || "not-started";
+        acc[booking._id] = booking.rideStatus || "not-started";
         return acc;
       }, {});
       dispatch(setMultipleBookingStatuses(statuses));
@@ -71,14 +71,14 @@ export default function HomeScreen() {
     try {
       setLoadingStates((prev) => ({ ...prev, [booking._id]: "starting" }));
       const response = await patch(
-        `driverbooking/${booking.bookingId._id}/assignments/${booking._id}/vehicles/${vehicleId}/ride-status`,
+        `driverbooking/${booking.bookingId}/assignments/${booking.assignmentId}/vehicles/${vehicleId}/ride-status`,
         { rideStatus: "started" }
       );
       console.log("Ride started:", response.data);
       dispatch(setBookingStatus({ bookingId: booking._id, status: "started" }));
       await fetchBookings();
     } catch (error) {
-      console.error("Error starting ride:", error.response.data.message);
+      console.error("Error starting ride:", error.response?.data?.message || error.message);
     } finally {
       setLoadingStates((prev) => ({ ...prev, [booking._id]: null }));
     }
@@ -88,14 +88,14 @@ export default function HomeScreen() {
     try {
       setLoadingStates((prev) => ({ ...prev, [booking._id]: "completing" }));
       const response = await patch(
-        `driverbooking/${booking.bookingId._id}/assignments/${booking._id}/vehicles/${vehicleId}/ride-status`,
+        `driverbooking/${booking.bookingId}/assignments/${booking.assignmentId}/vehicles/${vehicleId}/ride-status`,
         { rideStatus: "completed" }
       );
       console.log("Ride completed:", response.data);
       dispatch(setBookingStatus({ bookingId: booking._id, status: "completed" }));
       await fetchBookings();
     } catch (error) {
-      console.error("Error completing ride:", error.response.data.message);
+      console.error("Error completing ride:", error.response?.data?.message || error.message);
     } finally {
       setLoadingStates((prev) => ({ ...prev, [booking._id]: null }));
     }
@@ -105,7 +105,7 @@ export default function HomeScreen() {
     try {
       setLoadingStates((prev) => ({ ...prev, [selectedBooking._id]: "addingStop" }));
       const response = await post(
-        `driverbooking/${selectedBooking.bookingId._id}/assignments/${selectedBooking._id}/vehicles/${selectedVehicleId}/stops`,
+        `driverbooking/${selectedBooking.bookingId}/assignments/${selectedBooking.assignmentId}/vehicles/${selectedVehicleId}/stops`,
         {
           location: stopLocation,
           description: stopDescription,
@@ -119,7 +119,7 @@ export default function HomeScreen() {
       setAdditionalAmount("0");
       await fetchBookings();
     } catch (error) {
-      console.error("Error adding stop:", error);
+      console.error("Error adding stop:", error.response?.data?.message || error.message);
     } finally {
       setLoadingStates((prev) => ({ ...prev, [selectedBooking._id]: null }));
     }
@@ -173,11 +173,11 @@ export default function HomeScreen() {
   }, []);
 
   const renderBookingCard = ({ item }) => {
-    const service = item.bookingId.services[0];
+    const service = item.serviceDetail.services[0];
     const pickupDate = new Date(service.startDate).toLocaleDateString();
     const pickupTime = service.pickupTime;
-    const vehicle = item.vehicles[0];
-    const status = bookingStatuses[item._id] || item.vehicles[0].rideStatus;
+    const vehicle = item.vehicleId;
+    const status = bookingStatuses[item._id] || item.rideStatus;
 
     return (
       <TouchableOpacity
@@ -207,7 +207,7 @@ export default function HomeScreen() {
                 </View>
               </View>
             </View>
-            <Text style={styles.price}>${item.bookingId.estimatedPrice || "N/A"}</Text>
+            <Text style={styles.price}>${item.serviceDetail.estimatedPrice || "N/A"}</Text>
           </View>
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>
@@ -222,11 +222,11 @@ export default function HomeScreen() {
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>
               <Text style={styles.bold}>Customer: </Text>
-              {vehicle.customerDetails.name}
+              {item.customerDetails.name}
             </Text>
             <Text style={styles.metaText}>
               <Text style={styles.bold}>Vehicle: </Text>
-              {`${vehicle.make} ${vehicle.model}`}
+              {`${vehicle.specs.make} ${vehicle.specs.model}`}
             </Text>
           </View>
           <View style={styles.actionRow}>
@@ -330,11 +330,11 @@ export default function HomeScreen() {
             <Marker
               key={booking._id}
               coordinate={{
-                latitude: booking.bookingId.services[0].pickupLocation.latitude,
-                longitude: booking.bookingId.services[0].pickupLocation.longitude,
+                latitude: booking.serviceDetail.services[0].pickupLocation.latitude,
+                longitude: booking.serviceDetail.services[0].pickupLocation.longitude,
               }}
               title="Pickup Location"
-              description={booking.bookingId.services[0].pickupLocation.address}
+              description={booking.serviceDetail.services[0].pickupLocation.address}
               pinColor="#FF0000"
             />
           ))}
@@ -537,16 +537,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   startButton: {
-    backgroundColor: "#FF9500",
+    backgroundColor: "#1F5546",
   },
   stopButton: {
     backgroundColor: "#E74C3C",
   },
   completeButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#1F5546",
   },
   completedButton: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#1F5546",
   },
   submitButton: {
     backgroundColor: "#1F5546",
