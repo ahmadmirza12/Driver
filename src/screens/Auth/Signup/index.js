@@ -255,7 +255,7 @@ const Signup = ({ navigation }) => {
     try {
       setLoading(true);
       const payload = {
-        phone: state. phoneNumber,
+        phone: state.phoneNumber,
         purpose: "registration",
         name: state.firstName + " " + state.lastName,
       };
@@ -263,6 +263,9 @@ const Signup = ({ navigation }) => {
       const response = await post("auth/send-phone-verification-otp", payload);
       console.log("Send OTP phone API Response:", response.data);
       setphoneOtp(response.data.data.otp);
+      console.log("phone  otp=======>",
+        response.data?.data?.otp
+      )
       showSuccess(`OTP sent to your phone number: ${response.data.data.otp}`);
       return true;
     } catch (error) {
@@ -462,23 +465,16 @@ const Signup = ({ navigation }) => {
           scrollToTop();
         }
       } else if (step === 2) {
-        if (verificationType === "email") {
-          const isOtpVerified = await Verifyotp();
-          if (isOtpVerified) {
-            const phoneOtpSent = await Sendphoneotp();
-            if (phoneOtpSent) {
-              setVerificationType("phone");
-              setOtp("");
-              scrollToTop();
-            }
-          }
-        } else if (verificationType === "phone") {
-          const isPhoneVerified = await Verifyphoneotp();
-          if (isPhoneVerified) {
-            setStep(4); // Skip to step 4 (document upload) as per step progression
-            setErrors({});
-            scrollToTop();
-          }
+        const isVerified = await Verifyotp();
+        if (isVerified) {
+          await Sendphoneotp(); // Send phone OTP after email OTP verification
+          setOtp(""); // Clear OTP state after email OTP verification
+          setStep(3); // Navigate to step 3 after email OTP verification
+        }
+      } else if (step === 3) {
+        const isPhoneVerified = await Verifyphoneotp();
+        if (isPhoneVerified) {
+          setStep(4); // Navigate to step 4 after phone OTP verification
         }
       } else if (step === 4) {
         const docErrors = validateDocuments();
@@ -721,7 +717,7 @@ const Signup = ({ navigation }) => {
 
           <OTPComponent value={otp} setValue={setOtp} />
 
-          {__DEV__ && receivedOtp ? (
+          {receivedOtp ? (
             <View>
               <Text style={styles.devOtpText}>OTP is {receivedOtp}</Text>
             </View>
@@ -775,7 +771,7 @@ const Signup = ({ navigation }) => {
 
           <OTPComponent value={otp} setValue={setOtp} />
 
-          {__DEV__ && phoneOtp ? (
+          {phoneOtp ? (
             <View>
               <Text style={styles.devOtpText}>OTP is {phoneOtp}</Text>
             </View>

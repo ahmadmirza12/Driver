@@ -6,6 +6,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  ScrollView,
 } from "react-native";
 import { useDispatch } from "react-redux";
 
@@ -148,7 +149,7 @@ const Login = ({ navigation }) => {
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
       >
-        <View
+        <ScrollView       
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
@@ -230,7 +231,7 @@ const Login = ({ navigation }) => {
               onPress={() => navigation.navigate("Signup")}
             />
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </ScreenWrapper>
   );
@@ -249,7 +250,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   formContainer: {
-    // marginTop: 20,
+    marginTop: 20,
   },
   forgetPasswordView: {
     alignItems: "flex-end",
