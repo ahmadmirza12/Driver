@@ -7,6 +7,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 import ImageFast from "./ImageFast";
@@ -46,6 +47,7 @@ const ScreenWrapper = ({
   paddingRight,
 }) => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   const content = () => {
     return (
@@ -55,9 +57,7 @@ const ScreenWrapper = ({
           {
             paddingBottom: paddingBottom
               ? paddingBottom
-              : Platform.OS == "android"
-              ? 0
-              : 20,
+              : Math.max(20, insets.bottom),
             backgroundColor: backgroundImage ? "transparent" : backgroundColor,
           },
         ]}

@@ -1046,10 +1046,10 @@ const styles = StyleSheet.create({
     color: "#1F2937",
   },
   buttonContainer: {
-    marginTop: 10,
+    marginTop: 5,
   },
   button: {
-    marginBottom: 30,
+    marginBottom: 10,
   },
   progressContainer: {
     height: 6,

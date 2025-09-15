@@ -151,6 +151,7 @@ const Login = ({ navigation }) => {
       >
         <ScrollView       
           contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.formContainer}>
@@ -224,8 +225,8 @@ const Login = ({ navigation }) => {
 
           <View style={styles.bottomText}>
             <DualText
-              marginTop={100}
-              marginBottom={20}
+              marginTop={70}
+              // marginBottom={20}
               title="Don't have an account?"
               secondTitle="Create New"
               onPress={() => navigation.navigate("Signup")}
