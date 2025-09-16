@@ -17,6 +17,7 @@ import { get } from "../../../services/ApiRequest";
 import { useDispatch } from "react-redux";
 import { logout } from "../../../store/reducer/AuthConfig";
 import { setUserData } from "../../../store/reducer/usersSlice";
+import { clearUser } from "../../../store/reducer/dataSlice";
 
 
 const Account = ({ navigation }) => {
@@ -28,6 +29,7 @@ const Account = ({ navigation }) => {
   const handleLogout = async () => {
     try {
       dispatch(logout());
+      dispatch(clearUser());
       navigation.reset({
         index: 0,
         routes: [{ name: "AuthStack", params: { screen: "Login" } }],

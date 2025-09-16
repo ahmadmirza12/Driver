@@ -7,6 +7,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  RefreshControl,
 } from "react-native";
 import { get } from "../../../services/ApiRequest";
 
@@ -21,15 +22,20 @@ export default function Jobs({ navigation }) {
     "Completed",
   ];
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [jobs, setJobs] = useState([]);
 
-  const getJobs = async (status = "") => {
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await getJobs(selectedTab);
+    setRefreshing(false);
+  };
+
+  const getJobs = async () => {
     try {
       setLoading(true);
-      const query =
-        status && status !== "All" ? `?status=${status.toLowerCase()}` : "";
-      const response = await get(`bookings/rider/my-bookings${query}`);
-      console.log("=====>", response.data.data.bookings);
+      const response = await get(`driverbooking/driver/assignments`);
+      // console.log("=====>", response.data.data.bookings);
       setJobs(response.data.data.bookings || []);
     } catch (error) {
       console.error("Error fetching jobs:", error);
@@ -42,7 +48,7 @@ export default function Jobs({ navigation }) {
     getJobs(selectedTab);
   }, [selectedTab]);
 
-  const JobCard = ({ job }) => {
+  const JobCard = ({ job, navigation }) => {
     const getStatusColor = (status) => {
       switch (status) {
         case "completed":
@@ -54,19 +60,47 @@ export default function Jobs({ navigation }) {
           return "#E74C3C";
         case "assigned":
           return "#3498DB";
+        case "not-started":
+          return "#FFBA0D";
         default:
           return "#A7A7A7";
       }
     };
 
+    // Get the first service for display
+    const firstService = job.serviceDetail?.services?.[0] || {};
+    const pickupLocation = firstService.pickupLocation || {};
+    const dropoffLocation = firstService.dropoffLocation || {};
+    
+    // Format date and time
+    const formatDateTime = (dateStr, timeStr) => {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      if (timeStr) {
+        const [hours, minutes] = timeStr.split(':');
+        date.setHours(parseInt(hours), parseInt(minutes));
+      }
+      return date.toLocaleString([], {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+
     return (
-      <View style={styles.card}>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => navigation.navigate("BookingDetail", { item: job })}
+      >
         <View style={styles.cardLeft}>
+        
           <View style={styles.pointBlock}>
             <FontAwesome6 name="location-dot" size={20} color="#1F5546" />
             <View style={{ marginLeft: 5 }}>
               <Text style={styles.pointLabel}>Pickup</Text>
-              <Text style={styles.pointAddress}>{job.pickupLocation}</Text>
+              <Text style={styles.pointAddress}>{pickupLocation.address || 'N/A'}</Text>
             </View>
           </View>
 
@@ -76,36 +110,35 @@ export default function Jobs({ navigation }) {
             <FontAwesome6 name="location-dot" size={20} color="#1F5546" />
             <View style={{ marginLeft: 5 }}>
               <Text style={styles.pointLabel}>Drop Off</Text>
-              <Text style={styles.pointAddress}>{job.dropoffLocation}</Text>
+              <Text style={styles.pointAddress}>{dropoffLocation.address || 'N/A'}</Text>
             </View>
           </View>
 
-          <Text style={styles.infoText}>{job.serviceType}</Text>
           <Text style={styles.infoText}>
-            Time:{" "}
-            {new Date(job.pickupDateTime).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            Time: {formatDateTime(firstService.startDate, firstService.pickupTime)}
           </Text>
+          {firstService.durationHours && (
+            <Text style={styles.infoText}>
+              Duration: {firstService.durationHours} hours
+            </Text>
+          )}
         </View>
 
+        <Text style={styles.priceTop}>${job.serviceDetail?.estimatedPrice || 0}</Text>
+        
         <View style={styles.cardRight}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={{ flexDirection: "column", gap: 5 }}>
-              <TouchableOpacity
-                style={[
-                  styles.statusBtn,
-                  { backgroundColor: getStatusColor(job.status) },
-                ]}
-              >
-                <Text style={styles.statusBtnText}>{job.status}</Text>
-              </TouchableOpacity>
-              <Text style={styles.price}>${job.estimatedPrice}</Text>
-            </View>
+            <TouchableOpacity
+              style={[
+                styles.statusBtn,
+                { backgroundColor: getStatusColor(job.rideStatus) },
+              ]}
+            >
+              <Text style={styles.statusBtnText}>{job.rideStatus || 'N/A'}</Text>
+            </TouchableOpacity>
           </ScrollView>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -122,9 +155,17 @@ export default function Jobs({ navigation }) {
       <ScrollView
         contentContainerStyle={styles.cardWrapper}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#1F5546"]}
+            tintColor="#1F5546"
+          />
+        }
       >
         {jobs.map((job) => (
-          <JobCard key={job._id} job={job} />
+          <JobCard key={job._id} job={job} navigation={navigation} />
         ))}
       </ScrollView>
     );
@@ -165,7 +206,9 @@ export default function Jobs({ navigation }) {
         </ScrollView>
       </View>
 
+       
       <View style={styles.contentContainer}>{renderTabContent()}</View>
+    
     </View>
   );
 }
@@ -216,7 +259,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     marginTop: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
   },
   tabContentText: {
     fontSize: 16,
@@ -253,6 +296,31 @@ const styles = StyleSheet.create({
     color: "#000",
     fontWeight: "500",
   },
+  customerInfo: {
+    marginBottom: 8,
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  customerName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1F5546",
+    marginBottom: 2,
+  },
+  customerPhone: {
+    fontSize: 12,
+    color: "#666",
+  },
+  vehicleInfo: {
+    marginBottom: 8,
+  },
+  vehicleText: {
+    fontSize: 12,
+    color: "#333",
+    fontWeight: "500",
+    fontStyle: "italic",
+  },
   dottedLine: {
     borderLeftWidth: 1,
     borderLeftColor: "#ccc",
@@ -269,19 +337,29 @@ const styles = StyleSheet.create({
   cardRight: {
     alignItems: "flex-end",
     justifyContent: "space-between",
+    position:"absolute",
+    bottom:20,
+    right:20,
+    zIndex:1
   },
   price: {
-    fontSize: 16,
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#1F5546",
+  },
+  priceTop: {
+    fontSize: 20,
     fontWeight: "600",
     color: "#1F5546",
     position: "absolute",
-    bottom: 10,
-    right: 10,
+    top: 16,
+    right: 19,
+    zIndex: 1,
   },
   statusBtn: {
-    borderRadius: 10,
+    borderRadius: 5,
     height: 27,
-    width: 75,
+    width: 81,
     alignItems: "center",
     justifyContent: "center",
   },

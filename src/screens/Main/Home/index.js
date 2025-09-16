@@ -47,6 +47,7 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const bookingStatuses = useSelector(selectBookingStatuses);
+  const user = useSelector((state) => state.data.user);
 
   const fetchBookings = async () => {
     try {
@@ -288,14 +289,14 @@ export default function HomeScreen() {
       <StatusBar backgroundColor="#1F5546" barStyle="light-content" />
       <View style={styles.header}>
         <TouchableOpacity style={styles.profileSection}>
-          <Image
+          {/* <Image
             source={require("../../../assets/images/Roger.png")}
             style={styles.avatar}
-          />
+          /> */}
           <View style={styles.profileDetails}>
-            <Text style={styles.name}>Name</Text>
+            <Text style={styles.name}>{user?.name || 'Name'}</Text>
             <View style={styles.emailContainer}>
-              <Text style={styles.email}>user@example.com</Text>
+              <Text style={styles.email}>{user?.email || 'user@example.com'}</Text>
               <AntDesign name="down" size={14} color="#fff" />
             </View>
           </View>

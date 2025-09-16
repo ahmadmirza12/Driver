@@ -19,12 +19,13 @@ import ScreenWrapper from "../../../components/ScreenWrapper";
 import fonts from "../../../assets/fonts";
 import CustomInput from "../../../components/CustomInput";
 import { setLocation } from "../../../store/reducer/usersSlice";
-import { setToken, setUser } from "../../../store/reducer/AuthConfig";
+import { setToken } from "../../../store/reducer/AuthConfig";
 import GetLocation from "../../../utils/GetLocation";
 import { regEmail } from "../../../utils/constants";
 import { post } from "../../../services/ApiRequest";
 import { showSuccess, showError } from "../../../utils/toast";
 import { FontAwesome } from "@expo/vector-icons";
+import { setUser } from "../../../store/reducer/dataSlice";
 
 
 const Login = ({ navigation }) => {
@@ -90,10 +91,8 @@ const Login = ({ navigation }) => {
       setLoading(true);
       const response = await post("auth/login", data);
       console.log("Login API Response:", response.data.data);
-      // dispatch(setUser(response.data.data.user));
-      
-
-
+      // Dispatch user data to Redux store
+      dispatch(setUser(response.data.data.user));
 
       if (response.data.data.token) {
         // Dispatch token to Redux store
@@ -242,7 +241,7 @@ export default Login;
 
 const styles = StyleSheet.create({
   headerContainer: {
-    paddingTop: Platform.OS === "android" ? 35 : 0,
+    paddingTop: Platform.OS === "android" ? 35 : 10,
     backgroundColor: "#E8F6F2",
   },
   scrollContent: {

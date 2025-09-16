@@ -57,7 +57,7 @@ const ScreenWrapper = ({
           {
             paddingBottom: paddingBottom
               ? paddingBottom
-              : Math.max(20, insets.bottom),
+              : insets.bottom,
             backgroundColor: backgroundImage ? "transparent" : backgroundColor,
           },
         ]}

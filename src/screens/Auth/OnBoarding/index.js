@@ -8,11 +8,9 @@ import {
   View,
 } from "react-native";
 import { useDispatch } from "react-redux";
-
 import CustomText from "../../../components/CustomText";
 import ImageFast from "../../../components/ImageFast";
 import ScreenWrapper from "../../../components/ScreenWrapper";
-
 import fonts from "../../../assets/fonts";
 import { Images } from "../../../assets/images";
 import Icons from "../../../components/Icons";
@@ -22,7 +20,7 @@ import { COLORS } from "../../../utils/COLORS";
 import GetLocation from "../../../utils/GetLocation";
 
 const { width, height } = Dimensions.get("window");
-const slideHeight = height / 1.6;
+const slideHeight = height / 1.65;
 
 const OnBoarding = () => {
   const flatListRef = useRef();
@@ -161,11 +159,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 40,
   },
   button: {
-    width: 83,
-    height: 83,
+    width: 80,
+    height: 80,
     borderRadius: 100,
     backgroundColor: COLORS.btnColor,
     justifyContent: "center",
     alignItems: "center",
+    position:"absolute",
+    bottom:30,
+    alignSelf: "center"
   },
 });

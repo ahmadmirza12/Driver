@@ -7,13 +7,19 @@ export default function SplashScreen() {
   const navigation = useNavigation()
   const isOnBoarding = useSelector(state => state.authConfig.isOnBoarding);
 
+  // useEffect(() => {
+  //   setTimeout(() => {
+  //     if (isOnBoarding) {
+  //       navigation.replace('Login')
+  //     } else {
+  //       navigation.replace('OnBoarding')
+  //     }
+  //   }, 3000);
+  // }, [])
+
   useEffect(() => {
     setTimeout(() => {
-      if (isOnBoarding) {
-        navigation.replace('Login')
-      } else {
-        navigation.replace('OnBoarding')
-      }
+      navigation.replace('OnBoarding')
     }, 3000);
   }, [])
 
