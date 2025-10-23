@@ -220,7 +220,7 @@ const Notifications = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#1F5546" barStyle="light-content" />
+      <StatusBar backgroundColor="#1F5546" barStyle="dark-content" />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="black" />

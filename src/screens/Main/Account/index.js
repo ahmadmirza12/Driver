@@ -8,7 +8,6 @@ import {
   View,
   Alert,
 } from "react-native";
-
 import { AntDesign } from "@expo/vector-icons";
 import { ScrollView } from "react-native";
 import { PNGIcons } from "../../../assets/images/icons";
@@ -23,9 +22,6 @@ import { clearUser } from "../../../store/reducer/dataSlice";
 const Account = ({ navigation }) => {
   const dispatch = useDispatch();
   const [profileData, setProfileData] = useState(null);
-
-  const [loading, setLoading] = useState(false);
-
   const handleLogout = async () => {
     try {
       dispatch(logout());
@@ -39,7 +35,6 @@ const Account = ({ navigation }) => {
       Alert.alert("Error", "Failed to logout. Please try again.");
     }
   };
-
   const profile = async () => {
     try {
       const response = await get("auth/profile");
@@ -110,7 +105,7 @@ const Account = ({ navigation }) => {
     <View style={{ flex: 1, backgroundColor: "#E8F6F2" }}>
       <StatusBar
         backgroundColor="transparent"
-        barStyle="light-content"
+        barStyle="dark-content"
         translucent={true}
       />
 
@@ -179,12 +174,12 @@ export default Account;
 const styles = StyleSheet.create({
   header: {
     backgroundColor: "#1F5546",
-    height: 100,
+    height: 70,
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 50,
+    // paddingTop: 50,
     paddingHorizontal: 20,
   },
   EarningText: {

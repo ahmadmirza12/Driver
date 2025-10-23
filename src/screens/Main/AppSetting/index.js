@@ -18,7 +18,7 @@ export default function AppSetting() {
     <View style={styles.container}>
       <StatusBar
         backgroundColor="#1F5546"
-        barStyle="light-content"
+        barStyle="dark-content"
         translucent={false}
       />
 

@@ -73,7 +73,7 @@ const Editowner = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="transparent" barStyle="light-content" translucent={true} />
+      <StatusBar backgroundColor="transparent" barStyle="dark-content" translucent={true} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <AntDesign name="left" size={20} color="white" />
@@ -124,12 +124,12 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#1F5546",
-    height: 100,
+    height: 70,
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 50,
+    // paddingTop: 50,
     paddingHorizontal: 20,
     elevation: 4,
     shadowColor: "#000",

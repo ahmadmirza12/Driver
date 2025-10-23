@@ -315,7 +315,7 @@ const Vehicle = () => {
     <View style={styles.container}>
       <StatusBar
         backgroundColor="transparent"
-        barStyle="light-content"
+        barStyle="dark-content"
         translucent={true}
       />
 

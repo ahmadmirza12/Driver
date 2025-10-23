@@ -69,13 +69,21 @@ export default function HomeScreen() {
   };
 
   const startRide = async (booking, vehicleId) => {
+    const bookingId = booking.bookingId._id;
+    const assignmentId = booking._id;
+    console.log("Extracted IDs:", { bookingId, assignmentId, vehicleId });
     try {
       setLoadingStates((prev) => ({ ...prev, [booking._id]: "starting" }));
       const response = await patch(
-        `driverbooking/${booking.bookingId}/assignments/${booking.assignmentId}/vehicles/${vehicleId}/ride-status`,
+        `driverbooking/${bookingId}/assignments/${assignmentId}/vehicles/${vehicleId}/ride-status`,
         { rideStatus: "started" }
       );
-      console.log("Ride started:", response.data);
+      console.log("Ride started request:", {
+        bookingId,
+        assignmentId,
+        vehicleId,
+      });
+      console.log("Ride started response:", response.data);
       dispatch(setBookingStatus({ bookingId: booking._id, status: "started" }));
       await fetchBookings();
     } catch (error) {
@@ -86,10 +94,13 @@ export default function HomeScreen() {
   };
 
   const completeRide = async (booking, vehicleId) => {
+    const bookingId = booking.bookingId._id;
+    const assignmentId = booking._id;
+    console.log("Extracted IDs:", { bookingId, assignmentId, vehicleId });
     try {
       setLoadingStates((prev) => ({ ...prev, [booking._id]: "completing" }));
       const response = await patch(
-        `driverbooking/${booking.bookingId}/assignments/${booking.assignmentId}/vehicles/${vehicleId}/ride-status`,
+        `driverbooking/${bookingId}/assignments/${assignmentId}/vehicles/${vehicleId}/ride-status`,
         { rideStatus: "completed" }
       );
       console.log("Ride completed:", response.data);
@@ -103,16 +114,21 @@ export default function HomeScreen() {
   };
 
   const addStop = async () => {
+    const bookingId = selectedBooking.bookingId._id;
+    const assignmentId = selectedBooking._id;
+    console.log("Extracted IDs for add stop:", { bookingId, assignmentId, vehicleId: selectedVehicleId });
     try {
       setLoadingStates((prev) => ({ ...prev, [selectedBooking._id]: "addingStop" }));
       const response = await post(
-        `driverbooking/${selectedBooking.bookingId}/assignments/${selectedBooking.assignmentId}/vehicles/${selectedVehicleId}/stops`,
+        `driverbooking/${bookingId}/assignments/${assignmentId}/vehicles/${selectedVehicleId}/stops`,
         {
           location: stopLocation,
           description: stopDescription,
           additionalAmount: parseFloat(additionalAmount) || 0,
         }
+        
       );
+
       console.log("Stop added:", response.data);
       setModalVisible(false);
       setStopLocation("");
@@ -174,9 +190,9 @@ export default function HomeScreen() {
   }, []);
 
   const renderBookingCard = ({ item }) => {
-    const service = item.serviceDetail.services[0];
-    const pickupDate = new Date(service.startDate).toLocaleDateString();
-    const pickupTime = service.pickupTime;
+    const service = item.bookingId?.services?.[item.serviceIndex ?? 0] ?? item.serviceDetails;
+    const pickupDate = service?.startDate ? new Date(service.startDate).toLocaleDateString() : "N/A";
+    const pickupTime = service?.pickupTime || "N/A";
     const vehicle = item.vehicleId;
     const status = bookingStatuses[item._id] || item.rideStatus;
 
@@ -193,7 +209,7 @@ export default function HomeScreen() {
                 <View>
                   <Text style={styles.labelText}>Pickup</Text>
                   <Text style={styles.valueText} numberOfLines={1}>
-                    {service.pickupLocation.address.slice(0, 26) || "N/A"}
+                    {service.pickupLocation?.address?.slice(0, 20) || "N/A"}
                   </Text>
                 </View>
               </View>
@@ -203,12 +219,12 @@ export default function HomeScreen() {
                 <View>
                   <Text style={styles.labelText}>Dropoff</Text>
                   <Text style={styles.valueText} numberOfLines={1}>
-                    {service.dropoffLocation.address.slice(0, 26) || "N/A"}
+                    {service.dropoffLocation?.address?.slice(0, 20) || "N/A"}
                   </Text>
                 </View>
               </View>
             </View>
-            <Text style={styles.price}>${item.serviceDetail.estimatedPrice || "N/A"}</Text>
+            <Text style={styles.price}>${item.pricing?.driverPayment ?? "N/A"}</Text>
           </View>
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>
@@ -285,8 +301,9 @@ export default function HomeScreen() {
   };
 
   return (
+    
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#1F5546" barStyle="light-content" />
+      <StatusBar backgroundColor="#1F5546" barStyle="dark-content" />
       <View style={styles.header}>
         <TouchableOpacity style={styles.profileSection}>
           {/* <Image
@@ -327,18 +344,23 @@ export default function HomeScreen() {
               pinColor="#1F5546"
             />
           )}
-          {bookings.map((booking) => (
-            <Marker
-              key={booking._id}
-              coordinate={{
-                latitude: booking.serviceDetail.services[0].pickupLocation.latitude,
-                longitude: booking.serviceDetail.services[0].pickupLocation.longitude,
-              }}
-              title="Pickup Location"
-              description={booking.serviceDetail.services[0].pickupLocation.address}
-              pinColor="#FF0000"
-            />
-          ))}
+          {bookings.map((booking) => {
+            const srv = booking.bookingId?.services?.[booking.serviceIndex ?? 0] ?? booking.serviceDetails;
+            const pickup = srv?.pickupLocation;
+            if (!pickup) return null;
+            return (
+              <Marker
+                key={booking._id}
+                coordinate={{
+                  latitude: pickup.latitude,
+                  longitude: pickup.longitude,
+                }}
+                title="Pickup Location"
+                description={pickup.address || "Pickup Location"}
+                pinColor="#FF0000"
+              />
+            );
+          })}
         </MapView>
       </View>
 
@@ -417,8 +439,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#1F5546",
-    height: 100,
-    paddingTop: 40,
+    height: 70,
+    // paddingTop: 40,
     paddingHorizontal: 20,
     flexDirection: "row",
     justifyContent: "space-between",

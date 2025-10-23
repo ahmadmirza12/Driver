@@ -37,7 +37,7 @@ const ScreenWrapper = ({
   backgroundColor = COLORS.bg,
   headerUnScrollable = () => null,
   footerUnScrollable = () => null,
-  barStyle = "light-content",
+  barStyle = "dark-content",
   refreshControl,
   paddingBottom,
   nestedScrollEnabled,
@@ -55,9 +55,7 @@ const ScreenWrapper = ({
         style={[
           styles.container,
           {
-            paddingBottom: paddingBottom
-              ? paddingBottom
-              : insets.bottom,
+            paddingBottom: insets.bottom,
             backgroundColor: backgroundImage ? "transparent" : backgroundColor,
           },
         ]}

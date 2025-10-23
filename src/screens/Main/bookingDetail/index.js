@@ -6,16 +6,24 @@ import { useNavigation } from "expo-router";
 const BookingDetail = ({ route }) => {
   const [loading, setLoading] = useState(false);
   const { item } = route.params;
+  console.log(item);
   const navigation = useNavigation();
 
-  const service = item.serviceDetail.services[0];
-  const pickupDate = new Date(service.startDate).toLocaleDateString("en-US", {
-    weekday: "short",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-  const pickupTime = service.pickupTime || "Not specified";
+  const service = item.bookingId?.services?.[item.serviceIndex ?? 0] ?? item.serviceDetails;
+  const pickupDate = service?.startDate
+    ? new Date(service.startDate).toLocaleDateString("en-US", {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : "N/A";
+  const pickupTime = service?.startDate
+    ? new Date(service.startDate).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "Not specified";
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -47,6 +55,10 @@ const BookingDetail = ({ route }) => {
     }
   };
 
+  const totalAmount = item.pricing?.driverPayment || 0;
+  const additionalAmount = item.totalAdditionalAmount || 0;
+  const baseAmount = totalAmount - additionalAmount;
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -77,7 +89,7 @@ const BookingDetail = ({ route }) => {
         <View style={styles.routeCard}>
           <View style={styles.routeHeader}>
             <Text style={styles.routeTitle}>Trip Route</Text>
-            <Text style={styles.price}>${item.serviceDetail.estimatedPrice || "N/A"}</Text>
+            <Text style={styles.price}>${item.pricing?.driverPayment ?? "N/A"}</Text>
           </View>
           
           <View style={styles.routeContainer}>
@@ -91,14 +103,14 @@ const BookingDetail = ({ route }) => {
               <View style={styles.locationContainer}>
                 <Text style={styles.locationLabel}>PICKUP LOCATION</Text>
                 <Text style={styles.locationText}>
-                  {service.pickupLocation.address || "Location not specified"}
+                  {service?.pickupLocation?.address || "Location not specified"}
                 </Text>
               </View>
               
               <View style={styles.locationContainer}>
                 <Text style={styles.locationLabel}>DROP OFF LOCATION</Text>
                 <Text style={styles.locationText}>
-                  {service.dropoffLocation.address || "Location not specified"}
+                  {service?.dropoffLocation?.address || "Location not specified"}
                 </Text>
               </View>
             </View>
@@ -126,11 +138,11 @@ const BookingDetail = ({ route }) => {
           </View>
           <View style={styles.vehicleInfo}>
             <Text style={styles.vehicleName}>
-              {`${item.vehicleId.specs.make} ${item.vehicleId.specs.model}` || "N/A"}
+              {`${item.vehicleId?.specs?.make} ${item.vehicleId?.specs?.model}` || "N/A"}
             </Text>
-            <Text style={styles.plateNumber}>{item.vehicleId.specs.plateNumber}</Text>
+            <Text style={styles.plateNumber}>{item.vehicleId?.specs?.plateNumber || "N/A"}</Text>
           </View>
-          <Text style={styles.vehicleType}>{item.vehicleType || "Standard"}</Text>
+          <Text style={styles.vehicleType}>{item.vehicleDetails?.category || item.vehicleId?.specs?.category || "Standard"}</Text>
         </View>
 
         {/* Trip Details Card */}
@@ -142,27 +154,27 @@ const BookingDetail = ({ route }) => {
           <View style={styles.detailsGrid}>
             <DetailItem 
               label="Service Type" 
-              value={service.serviceType || "N/A"} 
+              value={service?.serviceType || "N/A"} 
               icon="car-sport-outline"
             />
             <DetailItem 
               label="Distance" 
-              value={service.estimatedDistance ? `${service.estimatedDistance} km` : "N/A"} 
+              value={service?.estimatedDistance ? `${service.estimatedDistance} km` : "N/A"} 
               icon="speedometer-outline"
             />
             <DetailItem 
               label="Duration" 
-              value={service.durationHours ? `${service.durationHours} hours` : "N/A"} 
+              value={service?.durationHours ? `${service.durationHours} hours` : "N/A"} 
               icon="timer-outline"
             />
             <DetailItem 
               label="Flight Number" 
-              value={service.flightNumber || "N/A"} 
+              value={service?.flightNumber || "N/A"} 
               icon="airplane-outline"
             />
           </View>
           
-          {service.additionalServices && service.additionalServices.length > 0 && (
+          {service?.additionalServices && service.additionalServices.length > 0 && (
             <View style={styles.addonsSection}>
               <Text style={styles.addonsTitle}>Add-on Services</Text>
               <View style={styles.addonsContainer}>
@@ -185,22 +197,22 @@ const BookingDetail = ({ route }) => {
           <View style={styles.customerInfo}>
             <DetailItem 
               label="Name" 
-              value={item.customerDetails.name || "N/A"} 
+              value={item.customerDetails?.name || "N/A"} 
               icon="person"
             />
             <DetailItem 
               label="Phone" 
-              value={item.customerDetails.phone || "N/A"} 
+              value={item.customerDetails?.phone || "N/A"} 
               icon="call"
             />
             <DetailItem 
               label="Address" 
-              value={item.customerDetails.address || "N/A"} 
+              value={item.customerDetails?.address || "N/A"} 
               icon="location"
             />
           </View>
           
-          {item.customerDetails.specialRequirements && (
+          {item.customerDetails?.specialRequirements && (
             <View style={styles.specialReqs}>
               <Text style={styles.specialReqsTitle}>Special Requirements</Text>
               <Text style={styles.specialReqsText}>
@@ -218,22 +230,16 @@ const BookingDetail = ({ route }) => {
           </View>
           <View style={styles.pricingRow}>
             <Text style={styles.pricingLabel}>Base Price</Text>
-            <Text style={styles.pricingValue}>
-              ${(item.serviceDetail.estimatedPrice - item.totalAdditionalAmount) || "N/A"}
-            </Text>
+            <Text style={styles.pricingValue}>${baseAmount}</Text>
           </View>
           <View style={styles.pricingRow}>
             <Text style={styles.pricingLabel}>Additional Charges</Text>
-            <Text style={styles.pricingValue}>
-              ${item.totalAdditionalAmount || 0}
-            </Text>
+            <Text style={styles.pricingValue}>${additionalAmount}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>
-              ${item.serviceDetail.estimatedPrice || "N/A"}
-            </Text>
+            <Text style={styles.totalValue}>${totalAmount}</Text>
           </View>
         </View>
 

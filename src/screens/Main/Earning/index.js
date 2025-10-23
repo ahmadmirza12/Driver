@@ -11,7 +11,7 @@ export default function Earning() {
     <View style={styles.container}>
       <StatusBar
         backgroundColor="#1F5546"
-        barStyle="light-content"
+        barStyle="dark-content"
         translucent={false}
       />
       <View style={styles.header}>

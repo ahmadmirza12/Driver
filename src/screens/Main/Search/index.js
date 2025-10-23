@@ -27,7 +27,7 @@ export default function Jobs({ navigation }) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await getJobs(selectedTab);
+    await getJobs();
     setRefreshing(false);
   };
 
@@ -35,7 +35,7 @@ export default function Jobs({ navigation }) {
     try {
       setLoading(true);
       const response = await get(`driverbooking/driver/assignments`);
-      // console.log("=====>", response.data.data.bookings);
+      console.log("=====>", response.data.data.bookings);
       setJobs(response.data.data.bookings || []);
     } catch (error) {
       console.error("Error fetching jobs:", error);
@@ -45,8 +45,8 @@ export default function Jobs({ navigation }) {
   };
 
   useEffect(() => {
-    getJobs(selectedTab);
-  }, [selectedTab]);
+    getJobs();
+  }, []);
 
   const JobCard = ({ job, navigation }) => {
     const getStatusColor = (status) => {
@@ -67,8 +67,8 @@ export default function Jobs({ navigation }) {
       }
     };
 
-    // Get the first service for display
-    const firstService = job.serviceDetail?.services?.[0] || {};
+    // Get the service details for display
+    const firstService = job.serviceDetails || {};
     const pickupLocation = firstService.pickupLocation || {};
     const dropoffLocation = firstService.dropoffLocation || {};
     
@@ -124,8 +124,8 @@ export default function Jobs({ navigation }) {
           )}
         </View>
 
-        <Text style={styles.priceTop}>${job.serviceDetail?.estimatedPrice || 0}</Text>
-        
+        {/* <Text style={styles.priceTop}>${job.serviceDetail?.estimatedPrice || 0}</Text> */}
+        <Text style={styles.price}>${job.pricing?.driverPayment ?? "N/A"}</Text>
         <View style={styles.cardRight}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <TouchableOpacity
@@ -147,7 +147,27 @@ export default function Jobs({ navigation }) {
       return <Text style={styles.tabContentText}>Loading...</Text>;
     }
 
-    if (jobs.length === 0) {
+    const filteredJobs = jobs.filter(job => {
+      if (selectedTab === "All") return true;
+      const rideStatus = job.rideStatus?.toLowerCase();
+      const assignmentStatus = job.status?.toLowerCase();
+      switch (selectedTab.toLowerCase()) {
+        case 'assigned':
+          return assignmentStatus === 'assigned';
+        case 'accepted':
+          return rideStatus === 'accepted';
+        case 'rejected':
+          return rideStatus === 'rejected';
+        case 'in-progress':
+          return rideStatus === 'in-progress';
+        case 'completed':
+          return rideStatus === 'completed';
+        default:
+          return false;
+      }
+    });
+
+    if (filteredJobs.length === 0) {
       return <Text style={styles.tabContentText}>No jobs found</Text>;
     }
 
@@ -164,7 +184,7 @@ export default function Jobs({ navigation }) {
           />
         }
       >
-        {jobs.map((job) => (
+        {filteredJobs.map((job) => (
           <JobCard key={job._id} job={job} navigation={navigation} />
         ))}
       </ScrollView>
@@ -173,7 +193,7 @@ export default function Jobs({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#1F5546" barStyle="light-content" />
+      <StatusBar backgroundColor="#1F5546" barStyle="dark-content" />
 
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation?.goBack?.()}>
@@ -220,11 +240,11 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#1F5546",
-    height: 100,
+    height: 70,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 50,
+    // paddingTop: 50,
     paddingHorizontal: 20,
   },
   headerText: {

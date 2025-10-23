@@ -58,7 +58,7 @@ const Editphoto = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#1F5546" barStyle="light-content" />
+      <StatusBar backgroundColor="#1F5546" barStyle="dark-content" />
 
       {/* Header */}
       <View style={styles.header}>

@@ -19,7 +19,7 @@ export default function ChatList({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#1F5546" barStyle="light-content" />
+      <StatusBar backgroundColor="#1F5546" barStyle="dark-content" />
 
       {/* Header */}
       <View style={styles.header}>
@@ -62,12 +62,12 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#1F5546',
-    height: 114,
+    height: 70,
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 50,
+    // paddingTop: 50,
     paddingHorizontal: 20,
   },
   headerText: {
