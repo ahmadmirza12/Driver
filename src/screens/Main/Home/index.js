@@ -301,15 +301,11 @@ export default function HomeScreen() {
   };
 
   return (
-    
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#1F5546" barStyle="dark-content" />
+      
       <View style={styles.header}>
         <TouchableOpacity style={styles.profileSection}>
-          {/* <Image
-            source={require("../../../assets/images/Roger.png")}
-            style={styles.avatar}
-          /> */}
           <View style={styles.profileDetails}>
             <Text style={styles.name}>{user?.name || 'Name'}</Text>
             <View style={styles.emailContainer}>

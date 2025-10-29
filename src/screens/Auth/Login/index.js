@@ -95,7 +95,7 @@ const Login = ({ navigation }) => {
       dispatch(setUser(response.data.data.user));
 
       if (response.data.data.token) {
-        // Dispatch token to Redux store
+       
         dispatch(setToken(response.data.data.token));
       }
 

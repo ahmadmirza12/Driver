@@ -1,4 +1,5 @@
 import { AntDesign } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
 import {
   Image,
   StatusBar,
@@ -7,15 +8,60 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { get } from '../../../services/ApiRequest';
+import { useNavigation } from '@react-navigation/native';
+export default function ChatList() {
+  const navigation = useNavigation();
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-export default function ChatList({ navigation }) {
-  const chats = [
-    { id: 1, name: 'Roger Jeson', message: 'Please pick me fast', time: '1 min ago' },
-    { id: 2, name: 'Wade Warren', message: 'thank you', time: '1 hour ago' },
-    { id: 3, name: 'Jenny Wilson', message: 'great ride', time: '59 min ago' },
-    { id: 4, name: 'Aelene McCoy', message: 'can you send me your num', time: '1 hour ago' },
-    { id: 5, name: 'Eleanor Pena', message: 'Following you', time: '1 hour ago' },
-  ];
+  const formatTime = (dateString) => {
+    if (!dateString) return 'No time';
+    const now = new Date();
+    const date = new Date(dateString);
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days > 1 ? 's' : ''} ago`;
+  };
+
+  const getmessages = async () => {
+    try {
+      const response = await get("chat/chats");
+      setMessages(response.data?.data?.chats || []);
+    } catch (error) {
+      console.log(error);
+      setMessages([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getmessages();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <StatusBar backgroundColor="#1F5546" barStyle="dark-content" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <AntDesign name="left" size={20} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.headerText}>Message</Text>
+          <AntDesign name="left" size={20} color="transparent" />
+        </View>
+        <View style={styles.loadingContainer}>
+          <Text>Loading messages...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -31,26 +77,34 @@ export default function ChatList({ navigation }) {
       </View>
 
       {/* Chat List */}
-      {chats.map((chat) => (
-        <View key={chat.id} style={styles.chatContainer}>
-          <TouchableOpacity
-            style={styles.chatCard}
-            onPress={() => navigation.navigate('Chats', { user: chat.name })}
-          >
-            <Image
-              source={require('../../../assets/images/Roger.png')}
-              style={styles.image}
-            />
-            <View style={styles.chatContent}>
-              <View style={styles.chatTopRow}>
-                <Text style={styles.name}>{chat.name}</Text>
-                <Text style={styles.time}>{chat.time}</Text>
+      {(messages || []).map((chat) => {
+        const other = chat.otherParticipants?.[0];
+      
+        return (
+          <View key={chat._id} style={styles.chatContainer}>
+            <TouchableOpacity
+              style={styles.chatCard}
+              onPress={() => navigation.navigate('Chats', { userId: other._id, userName: other.name })}
+            >
+              <Image
+                source={require('../../../assets/images/Roger.png')}
+                style={styles.image}
+              />
+              <View style={styles.chatContent}>
+                <View style={styles.chatTopRow}>
+                  <Text style={styles.name}>{other.name}</Text>
+                  <Text style={styles.time}>{formatTime(chat.lastMessageTime)}</Text>
+                </View>
+                <Text style={styles.message}>
+                  {typeof chat.lastMessage === 'string' 
+                    ? chat.lastMessage 
+                    : chat.lastMessage?.content || chat.lastMessage?.text || 'No messages yet'}
+                </Text>
               </View>
-              <Text style={styles.message}>{chat.message}</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      ))}
+            </TouchableOpacity>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -67,13 +121,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    // paddingTop: 50,
     paddingHorizontal: 20,
   },
   headerText: {
     color: 'white',
     fontSize: 18,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   chatContainer: {
     paddingHorizontal: 20,
