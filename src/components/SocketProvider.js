@@ -1,82 +1,159 @@
-import { createContext, useContext, useEffect, useState, useRef } from "react";
+// Driver-side: components/SocketProvider.js (React Native)
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { io } from "socket.io-client";
-
 import { setUnseenBadge } from "../store/reducer/usersSlice";
 import { endPoints } from "../services/ENV";
 
 const SocketContext = createContext();
-export const useSocket = () => useContext(SocketContext);
+
+export const useSocket = () => {
+  const context = useContext(SocketContext);
+  if (!context) {
+    throw new Error("useSocket must be used within SocketProvider");
+  }
+  return context;
+};
 
 const SocketProvider = ({ children }) => {
   const token = useSelector((state) => state.authConfig.token);
   const dispatch = useDispatch();
   const [socket, setSocket] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef(null);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
-  const initializeSocket = () => {
+  const initializeSocket = useCallback(() => {
     if (!token) {
-      console.log("No token found for authentication");
-      return;
+      console.log("❌ No token available for socket connection");
+      return null;
     }
-    console.log("Initializing socket with token:", token);
 
-    const socket = io(endPoints.SOCKET_BASE_URL, {
-      auth: {
-        token,
-      },
-    });
+    // Disconnect existing socket
+    if (socketRef.current) {
+      console.log("🔄 Cleaning up existing socket");
+      socketRef.current.removeAllListeners();
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
 
-    socket.on("connect", () => {
-      console.log("Socket connected successfully");
-      setSocket(socket);
-    });
-    socket.on("authenticated", (id) => {
-      console.log("Socket authenticated with ID:", id);
-      setSocket(socket);
-    });
+    console.log("🚀 Initializing socket connection...");
 
-    socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error.message);
-    });
-    socket.on("unauthorized", (error) => {
-      console.error("Unauthorized socket connection:", error.message);
+    const newSocket = io(endPoints.SOCKET_BASE_URL, {
+      auth: { token },
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: maxReconnectAttempts,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      autoConnect: true,
     });
 
-    socket.on("noti-unseen", (res) => {
+    // Store reference immediately
+    socketRef.current = newSocket;
+
+    // Connection successful
+    newSocket.on("connect", () => {
+      console.log("✅ Socket connected successfully. ID:", newSocket.id);
+      setIsConnected(true);
+      setSocket(newSocket);
+      reconnectAttempts.current = 0;
+    });
+
+    // Authentication confirmed
+    newSocket.on("authenticated", (data) => {
+      console.log("🔐 Socket authenticated:", data);
+    });
+
+    // Connection error
+    newSocket.on("connect_error", (error) => {
+      console.error("❌ Socket connection error:", error.message);
+      setIsConnected(false);
+    });
+
+    // General error
+    newSocket.on("error", (error) => {
+      console.error("❌ Socket error:", error);
+    });
+
+    // Unauthorized
+    newSocket.on("unauthorized", (error) => {
+      console.error("🚫 Unauthorized socket connection:", error?.message || error);
+      setIsConnected(false);
+    });
+
+    // Handle unseen notifications
+    newSocket.on("noti-unseen", (res) => {
+      console.log("🔔 Unseen notification:", res);
       dispatch(setUnseenBadge(res));
     });
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected. Attempting to reconnect...");
+
+    // Disconnected
+    newSocket.on("disconnect", (reason) => {
+      console.log("⚠️ Socket disconnected. Reason:", reason);
+      setIsConnected(false);
       setSocket(null);
     });
 
-    socket.on("reconnect", (attemptNumber) => {
-      // console.log("Reconnected after", attemptNumber, "attempts");
-      socket.emit("authenticate", token);
+    // Reconnection events
+    newSocket.io.on("reconnect", (attemptNumber) => {
+      console.log("🔄 Reconnected after", attemptNumber, "attempts");
+      setIsConnected(true);
     });
 
-    socketRef.current = socket;
-  };
+    newSocket.io.on("reconnect_attempt", (attemptNumber) => {
+      console.log(`🔄 Reconnection attempt ${attemptNumber}/${maxReconnectAttempts}`);
+    });
 
+    newSocket.io.on("reconnect_error", (error) => {
+      console.error("❌ Reconnection error:", error.message);
+    });
+
+    newSocket.io.on("reconnect_failed", () => {
+      console.error("❌ Reconnection failed after", maxReconnectAttempts, "attempts");
+    });
+
+    return newSocket;
+  }, [token, dispatch]);
+
+  // Initialize socket when token is available
   useEffect(() => {
     if (token) {
-      initializeSocket();
-    } else {
-      console.log("No token found for authentication");
-    }
+      const newSocket = initializeSocket();
 
-    return () => {
+      return () => {
+        if (socketRef.current) {
+          console.log("🧹 Cleaning up socket on unmount");
+          socketRef.current.removeAllListeners();
+          socketRef.current.disconnect();
+          socketRef.current = null;
+        }
+        setSocket(null);
+        setIsConnected(false);
+      };
+    } else {
+      // No token, clean up
       if (socketRef.current) {
         socketRef.current.disconnect();
-        // console.log("Socket disconnected during cleanup");
+        socketRef.current = null;
       }
       setSocket(null);
-    };
-  }, [token]);
+      setIsConnected(false);
+    }
+  }, [token, initializeSocket]);
+
+  const contextValue = {
+    socket,
+    isConnected,
+    reconnect: initializeSocket,
+  };
 
   return (
-    <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
+    <SocketContext.Provider value={contextValue}>
+      {children}
+    </SocketContext.Provider>
   );
 };
 
