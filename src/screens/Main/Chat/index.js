@@ -207,10 +207,9 @@ const Chats = ({ route, navigation }) => {
     console.log("📤 Sending message via socket:", socketPayload);
 
     // Emit with timeout and acknowledgment
-    socket.timeout(10000).emit("send_message", socketPayload, (err, response) => {
-     
-
-      if (response && response.success) {
+    socket.timeout(1000).emit("send_message", socketPayload, ( response) => {
+     console.log("✅ Message sent successfully:", response);
+      if (response ) {
         console.log("✅ Message sent successfully:", response);
         
         // Update optimistic message with server data
@@ -242,16 +241,13 @@ const Chats = ({ route, navigation }) => {
 
   const renderMessageStatus = (status) => {
     switch (status) {
-      case "sending":
-        return <ActivityIndicator size="small" color="#999" style={styles.statusIcon} />;
+     
       case "sent":
         return <Ionicons name="checkmark-done" size={16} color="#4CAF50" style={styles.statusIcon} />;
       case "delivered":
         return <Ionicons name="checkmark-done" size={16} color="#2196F3" style={styles.statusIcon} />;
       case "read":
         return <Ionicons name="checkmark-done" size={16} color="#2196F3" style={styles.statusIcon} />;
-      case "failed":
-        return <Ionicons name="alert-circle" size={16} color="#F44336" style={styles.statusIcon} />;
       default:
         return null;
     }
