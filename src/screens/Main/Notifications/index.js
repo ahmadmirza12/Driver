@@ -23,7 +23,7 @@ const Notifications = () => {
     setLoading(true);
     try {
       const response = await get("notifications");
-      // console.log("Notifications API Response:", response.data.data);
+      console.log("Notifications API Response:", response.data.data);
       const apiData = response.data?.data?.notifications || [];
       const processedNotifications = apiData.map((notification) => ({
         id: notification._id,

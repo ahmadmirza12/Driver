@@ -42,7 +42,7 @@ const Chats = ({ route, navigation }) => {
       try {
         console.log("📡 Fetching messages for userId:", userId);
         const response = await get(`chat/chats/${userId}`);
-        
+
         const chatData = response.data?.data?.chat;
         const messagesData = response.data?.data?.messages || [];
 
@@ -86,7 +86,12 @@ const Chats = ({ route, navigation }) => {
   // Socket event listeners
   useEffect(() => {
     if (!socket || !socket.connected || !userId || !currentUserId) {
-      console.log("⚠️ Socket not ready:", { socket: !!socket, connected: socket?.connected, userId, currentUserId });
+      console.log("⚠️ Socket not ready:", {
+        socket: !!socket,
+        connected: socket?.connected,
+        userId,
+        currentUserId,
+      });
       return;
     }
 
@@ -100,7 +105,11 @@ const Chats = ({ route, navigation }) => {
         return;
       }
 
-      const senderId = message.senderId?._id || message.senderId || message.sender || message.from;
+      const senderId =
+        message.senderId?._id ||
+        message.senderId ||
+        message.sender ||
+        message.from;
 
       if (!senderId) {
         console.error("❌ No senderId in message:", message);
@@ -116,8 +125,10 @@ const Chats = ({ route, navigation }) => {
       const normalizedMessage = {
         id: message._id || message.id || `temp-${Date.now()}`,
         senderId: senderId,
-        content: message.formattedContent || message.content || message.text || "",
-        createdAt: message.createdAt || message.timestamp || new Date().toISOString(),
+        content:
+          message.formattedContent || message.content || message.text || "",
+        createdAt:
+          message.createdAt || message.timestamp || new Date().toISOString(),
         status: senderId === currentUserId ? "sent" : "received",
       };
 
@@ -128,11 +139,17 @@ const Chats = ({ route, navigation }) => {
             msg.status === "sending" &&
             msg.senderId === currentUserId &&
             msg.content === normalizedMessage.content &&
-            Math.abs(new Date(msg.createdAt).getTime() - new Date(normalizedMessage.createdAt).getTime()) < 5000
+            Math.abs(
+              new Date(msg.createdAt).getTime() -
+                new Date(normalizedMessage.createdAt).getTime()
+            ) < 5000
         );
 
         if (optimisticIndex !== -1) {
-          console.log("🔄 Updating optimistic message at index:", optimisticIndex);
+          console.log(
+            "🔄 Updating optimistic message at index:",
+            optimisticIndex
+          );
           const updated = [...prev];
           updated[optimisticIndex] = normalizedMessage;
           return updated;
@@ -207,18 +224,16 @@ const Chats = ({ route, navigation }) => {
     console.log("📤 Sending message via socket:", socketPayload);
 
     // Emit with timeout and acknowledgment
-    socket.timeout(1000).emit("send_message", socketPayload, ( response) => {
-     console.log("✅ Message sent successfully:", response);
-      if (response ) {
+    socket.timeout(1000).emit("send_message", socketPayload, (response) => {
+      console.log("✅ Message sent successfully:", response);
+      if (response) {
         console.log("✅ Message sent successfully:", response);
-        
+
         // Update optimistic message with server data
         const serverId = response._id || response.message?._id || tempId;
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === tempId
-              ? { ...msg, id: serverId, status: "sent" }
-              : msg
+            msg.id === tempId ? { ...msg, id: serverId, status: "sent" } : msg
           )
         );
 
@@ -227,7 +242,7 @@ const Chats = ({ route, navigation }) => {
         }
       } else {
         console.error("❌ Server rejected message:", response);
-        
+
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === tempId
@@ -241,13 +256,33 @@ const Chats = ({ route, navigation }) => {
 
   const renderMessageStatus = (status) => {
     switch (status) {
-     
       case "sent":
-        return <Ionicons name="checkmark-done" size={16} color="#4CAF50" style={styles.statusIcon} />;
+        return (
+          <Ionicons
+            name="checkmark-done"
+            size={16}
+            color="#4CAF50"
+            style={styles.statusIcon}
+          />
+        );
       case "delivered":
-        return <Ionicons name="checkmark-done" size={16} color="#2196F3" style={styles.statusIcon} />;
+        return (
+          <Ionicons
+            name="checkmark-done"
+            size={16}
+            color="#2196F3"
+            style={styles.statusIcon}
+          />
+        );
       case "read":
-        return <Ionicons name="checkmark-done" size={16} color="#2196F3" style={styles.statusIcon} />;
+        return (
+          <Ionicons
+            name="checkmark-done"
+            size={16}
+            color="#2196F3"
+            style={styles.statusIcon}
+          />
+        );
       default:
         return null;
     }
@@ -364,7 +399,9 @@ const Chats = ({ route, navigation }) => {
         renderItem={renderItem}
         keyExtractor={(item) => item.id || item.tempId}
         contentContainerStyle={styles.messagesContainer}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        onContentSizeChange={() =>
+          flatListRef.current?.scrollToEnd({ animated: true })
+        }
         onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
