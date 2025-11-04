@@ -10,6 +10,8 @@ import {
   View,
   Modal,
   TextInput,
+  Platform,
+  Linking,
 } from "react-native";
 import { useEffect, useState } from "react";
 import { useNavigation } from "expo-router";
@@ -48,6 +50,34 @@ export default function HomeScreen() {
   const dispatch = useDispatch();
   const bookingStatuses = useSelector(selectBookingStatuses);
   const user = useSelector((state) => state.data.user);
+
+  const openMapForBooking = async (booking, status) => {
+    const service = booking.bookingId?.services?.[booking.serviceIndex ?? 0] ?? booking.serviceDetails;
+    const pickup = service?.pickupLocation;
+    const dropoff = service?.dropoffLocation;
+    const target = status === "started" ? dropoff : pickup;
+    if (!target?.latitude || !target?.longitude) {
+      console.log("No target location available");
+      return;
+    }
+    const { latitude: lat, longitude: lng } = target;
+    let url = "";
+    if (Platform.OS === "ios") {
+      url = `maps://maps.apple.com/maps?saddr,!&daddr=${lat},${lng}&dirflg=d`;
+    } else {
+      url = `https://www.google.com/maps/dir/?api=1&origin=Current+Location&destination=${lat},${lng}&travelmode=driving`;
+    }
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        console.log("Cannot open map app");
+      }
+    } catch (error) {
+      console.error("Error opening maps:", error);
+    }
+  };
 
   const fetchBookings = async () => {
     try {
@@ -224,7 +254,17 @@ export default function HomeScreen() {
                 </View>
               </View>
             </View>
-            <Text style={styles.price}>${item.pricing?.driverPayment ?? "N/A"}</Text>
+            <View style={styles.priceContainer}>
+              <Text style={styles.price}>${item.pricing?.driverPayment ?? "N/A"}</Text>
+              {status !== "completed" && (
+                <TouchableOpacity
+                  style={styles.directionsButton}
+                  onPress={() => openMapForBooking(item, status)}
+                >
+                  <MaterialIcons name="directions" size={16} color="#fff" />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>
@@ -525,6 +565,9 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     marginVertical: 4,
   },
+  priceContainer: {
+    alignItems: "flex-end",
+  },
   price: {
     fontSize: 18,
     fontWeight: "700",
@@ -554,6 +597,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 6,
     flex: 1,
+  },
+  directionsButton: {
+    backgroundColor: "#1F5546",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginTop: 4,
+    alignSelf: "flex-end",
   },
   startButton: {
     backgroundColor: "#1F5546",
